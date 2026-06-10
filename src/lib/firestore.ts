@@ -6,11 +6,14 @@ import {
   getDoc,
   getDocs,
   increment,
+  limit,
   orderBy,
   query,
   type QueryConstraint,
+  type QueryDocumentSnapshot,
   serverTimestamp,
   setDoc,
+  startAfter,
   Timestamp,
   updateDoc,
   where,
@@ -248,4 +251,51 @@ export async function listCheckouts(range?: {
     const data = d.data() as Omit<Checkout, 'id'>;
     return { id: d.id, ...data };
   });
+}
+
+export const CHECKOUTS_PAGE_SIZE = 25;
+
+export interface CheckoutsPage {
+  checkouts: Checkout[];
+  /** Pass as `cursor` to fetch the next page. Undefined when this is the last page. */
+  nextCursor: QueryDocumentSnapshot | undefined;
+}
+
+/** Paginated checkout fetch for the Settings UI. */
+export async function listCheckoutsPage(
+  cursor?: QueryDocumentSnapshot,
+): Promise<CheckoutsPage> {
+  const constraints: QueryConstraint[] = [
+    orderBy('createdAt', 'desc'),
+    limit(CHECKOUTS_PAGE_SIZE),
+  ];
+  if (cursor) constraints.push(startAfter(cursor));
+
+  const snap = await getDocs(query(checkoutsCol, ...constraints));
+  const checkouts = snap.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as Omit<Checkout, 'id'>),
+  }));
+  const nextCursor =
+    snap.docs.length === CHECKOUTS_PAGE_SIZE
+      ? snap.docs[snap.docs.length - 1]
+      : undefined;
+  return { checkouts, nextCursor };
+}
+
+/** Search pass holders by name prefix (case-insensitive via stored nameLower field, or client-side). */
+export async function searchPassHolders(
+  passItemId: string,
+  search: string,
+): Promise<PassHolder[]> {
+  const snap = await getDocs(
+    query(passHoldersCol, where('passItemId', '==', passItemId), orderBy('name')),
+  );
+  const all = snap.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as Omit<PassHolder, 'id'>),
+  }));
+  if (!search.trim()) return all.slice(0, 50);
+  const lower = search.trim().toLowerCase();
+  return all.filter((h) => h.name.toLowerCase().includes(lower)).slice(0, 50);
 }

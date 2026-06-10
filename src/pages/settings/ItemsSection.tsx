@@ -25,7 +25,7 @@ import {
   CheckboxField,
 } from '../../components/ui/Field';
 import { DateField } from '../../components/ui/DateField';
-import { useItems, useItemMutations, useCategories, usePassHolders, usePassHolderMutations } from '../../lib/queries';
+import { useItems, useItemMutations, useCategories, usePassHolderSearch, usePassHolderMutations } from '../../lib/queries';
 import { countPassHolders } from '../../lib/firestore';
 import { formatPrice } from '../../lib/format';
 import type { Item, PassHolder } from '../../lib/types';
@@ -58,7 +58,8 @@ type ModalMode =
 type DeleteState = { open: false } | { open: true; item: Item };
 
 function PassHoldersSection({ passItemId }: { passItemId: string }) {
-  const { data: holders = [], isLoading } = usePassHolders(passItemId);
+  const [search, setSearch] = useState('');
+  const { data: holders = [], isLoading } = usePassHolderSearch(passItemId, search);
   const { create, update, remove } = usePassHolderMutations(passItemId);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -111,10 +112,17 @@ function PassHoldersSection({ passItemId }: { passItemId: string }) {
         Pass Holders
       </p>
 
+      <input
+        className="mb-3 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-lime-300/60"
+        placeholder="Search by name…"
+        value={search}
+        onChange={(e) => { setSearch(e.target.value); setEditHolder(null); }}
+      />
+
       {isLoading ? (
         <p className="text-sm text-white/30">Loading…</p>
       ) : holders.length === 0 ? (
-        <p className="mb-3 text-sm text-white/30">No holders registered yet.</p>
+        <p className="mb-3 text-sm text-white/30">{search ? 'No results.' : 'No holders registered yet.'}</p>
       ) : editHolder ? (
         <div className="mb-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
           <p className="text-xs font-medium text-white/50">Editing {editHolder.name}</p>

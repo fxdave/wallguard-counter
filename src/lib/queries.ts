@@ -1,6 +1,7 @@
 import {
   useMutation,
   useQuery,
+  useInfiniteQuery,
   useQueryClient,
 } from '@tanstack/react-query';
 import {
@@ -18,9 +19,11 @@ import {
   incrementPassHolderUsage,
   listCategories,
   listCheckouts,
+  listCheckoutsPage,
   listItems,
   listMembers,
   listPassHolders,
+  searchPassHolders,
   reorderCategories,
   reorderItems,
   removeMember,
@@ -28,7 +31,9 @@ import {
   updateCheckout,
   updateItem,
   updatePassHolder,
+  type CheckoutsPage,
 } from './firestore';
+import type { QueryDocumentSnapshot } from 'firebase/firestore';
 import type { CategoryInput, ItemInput } from './types';
 
 /** Centralized query keys so cache invalidation stays consistent. */
@@ -114,6 +119,15 @@ export function usePassHolders(passItemId: string | null) {
   });
 }
 
+export function usePassHolderSearch(passItemId: string, search: string) {
+  return useQuery({
+    queryKey: ['passHolders', passItemId, 'search', search],
+    queryFn: () => searchPassHolders(passItemId, search),
+    enabled: !!passItemId,
+    staleTime: 30_000,
+  });
+}
+
 export function usePassHolderMutations(passItemId?: string) {
   const qc = useQueryClient();
   const invalidate = () =>
@@ -172,6 +186,16 @@ export function useCheckouts(range?: { from: Date; to: Date }) {
   return useQuery({
     queryKey: queryKeys.checkouts(range),
     queryFn: () => listCheckouts(range),
+  });
+}
+
+/** Paginated checkouts for the Settings UI — newest first, 25 at a time. */
+export function useCheckoutsInfinite() {
+  return useInfiniteQuery<CheckoutsPage, Error, { pages: CheckoutsPage[] }, string[], QueryDocumentSnapshot | undefined>({
+    queryKey: ['checkouts', 'paged'],
+    queryFn: ({ pageParam }) => listCheckoutsPage(pageParam),
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
   });
 }
 

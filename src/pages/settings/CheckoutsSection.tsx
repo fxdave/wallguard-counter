@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { NumberField, SelectField } from '../../components/ui/Field';
-import { useCheckouts, useCheckoutMutations, useItems } from '../../lib/queries';
+import { useCheckoutsInfinite, useCheckoutMutations, useItems } from '../../lib/queries';
 import { formatPrice, toDateInputValue, fromDateInputValue } from '../../lib/format';
 import type { Checkout, CheckoutLine } from '../../lib/types';
 
@@ -118,7 +118,14 @@ function CheckoutRow({ checkout, onEdit, onDelete }: CheckoutRowProps) {
 }
 
 export function CheckoutsSection() {
-  const { data: checkouts = [], isLoading } = useCheckouts();
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = useCheckoutsInfinite();
+  const checkouts = data?.pages.flatMap((p) => p.checkouts) ?? [];
   const { data: items = [] } = useItems();
   const { update, remove } = useCheckoutMutations();
 
@@ -220,18 +227,31 @@ export function CheckoutsSection() {
           <p className="text-sm text-white/40">No checkouts yet. Save a batch from Quick Add first.</p>
         </div>
       ) : (
-        <ul className="space-y-1.5">
-          <AnimatePresence initial={false}>
-            {checkouts.map((co) => (
-              <CheckoutRow
-                key={co.id}
-                checkout={co}
-                onEdit={() => openEdit(co)}
-                onDelete={() => setDeleteState({ open: true, checkout: co })}
-              />
-            ))}
-          </AnimatePresence>
-        </ul>
+        <>
+          <ul className="space-y-1.5">
+            <AnimatePresence initial={false}>
+              {checkouts.map((co) => (
+                <CheckoutRow
+                  key={co.id}
+                  checkout={co}
+                  onEdit={() => openEdit(co)}
+                  onDelete={() => setDeleteState({ open: true, checkout: co })}
+                />
+              ))}
+            </AnimatePresence>
+          </ul>
+          {hasNextPage && (
+            <div className="mt-3 text-center">
+              <Button
+                variant="ghost"
+                onClick={() => void fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? 'Loading…' : `Load more (${checkouts.length} shown)`}
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Edit modal */}
