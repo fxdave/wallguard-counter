@@ -5,6 +5,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   orderBy,
   query,
   type QueryConstraint,
@@ -129,9 +130,35 @@ export async function listPassHolders(passItemId: string): Promise<PassHolder[]>
 export async function createPassHolder(input: PassHolderInput): Promise<string> {
   const ref = await addDoc(passHoldersCol, {
     ...input,
+    usageCount: input.usageCount ?? 0,
+    startedAt: input.startedAt ?? new Date().toISOString().slice(0, 10),
     createdAt: serverTimestamp(),
   });
   return ref.id;
+}
+
+export async function updatePassHolder(
+  id: string,
+  input: Partial<Omit<PassHolder, 'id' | 'createdAt'>>,
+): Promise<void> {
+  await updateDoc(doc(passHoldersCol, id), input);
+}
+
+export async function deletePassHolder(id: string): Promise<void> {
+  await deleteDoc(doc(passHoldersCol, id));
+}
+
+/** Returns the number of pass holders for a given pass item. */
+export async function countPassHolders(passItemId: string): Promise<number> {
+  const snap = await getDocs(
+    query(passHoldersCol, where('passItemId', '==', passItemId)),
+  );
+  return snap.size;
+}
+
+/** Atomically increments usageCount on a pass holder. */
+export async function incrementPassHolderUsage(id: string): Promise<void> {
+  await updateDoc(doc(passHoldersCol, id), { usageCount: increment(1) });
 }
 
 // --------------------------------------------------------------------- Items
