@@ -1,0 +1,10 @@
+# Vite dev server for local development under podman compose.
+FROM docker.io/library/node:alpine
+
+WORKDIR /app
+
+# Dependencies are installed at container start (see compose command) against a
+# named volume so host/container native binaries never clash.
+EXPOSE 5173
+
+CMD ["sh", "-c", "npm install && npm run dev"]

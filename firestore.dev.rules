@@ -1,0 +1,15 @@
+rules_version = '2';
+
+// DEV / EMULATOR ONLY — do NOT deploy this file.
+//
+// The production rules (firestore.rules) gate access behind a hard-coded email
+// allowlist. That makes the local emulator unusable out of the box (an empty
+// allowlist denies everything). For local development we instead allow any
+// signed-in user. CI/production always deploy firestore.rules, never this file.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

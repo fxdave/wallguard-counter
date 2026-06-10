@@ -1,0 +1,55 @@
+# Local development environment.
+#
+#   podman compose up
+#
+#   web  → http://localhost:5173   (Vite dev server, wired to the emulators)
+#   UI   → http://localhost:4000   (Firebase Emulator Suite UI)
+#
+# The web service waits for the emulators to come up, then runs `npm run dev`.
+services:
+  emulators:
+    build:
+      context: .
+      dockerfile: Containerfile.emulators
+    # Use open dev rules locally (firebase.emulator.json -> firestore.dev.rules)
+    # so a signed-in user can actually read/write. Production deploys the strict
+    # allowlist in firestore.rules via CI.
+    command: >
+      firebase emulators:start --only auth,firestore
+      -P demo-wallguard --config firebase.emulator.json
+    ports:
+      - '9099:9099' # Auth
+      - '8080:8080' # Firestore
+      - '4000:4000' # Emulator UI
+    volumes:
+      - ./firebase.emulator.json:/app/firebase.emulator.json:ro,z
+      - ./firestore.dev.rules:/app/firestore.dev.rules:ro,z
+      - ./firestore.indexes.json:/app/firestore.indexes.json:ro,z
+
+  web:
+    build:
+      context: .
+      dockerfile: Containerfile.dev
+    ports:
+      - '5173:5173'
+    environment:
+      # Point the client at the emulators. The browser reaches them via the
+      # host-published ports above (localhost), so no in-container host rewrite
+      # is needed.
+      VITE_USE_EMULATORS: 'true'
+      VITE_FIREBASE_API_KEY: 'demo-key'
+      VITE_FIREBASE_AUTH_DOMAIN: 'localhost'
+      VITE_FIREBASE_PROJECT_ID: 'demo-wallguard'
+      VITE_FIREBASE_STORAGE_BUCKET: 'demo-wallguard.appspot.com'
+      VITE_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+      VITE_FIREBASE_APP_ID: 'demo-app-id'
+    volumes:
+      - .:/app:z
+      - node_modules:/app/node_modules
+    # Start after the emulators container launches. The web app retries its
+    # emulator connection, so it doesn't need to wait for full readiness.
+    depends_on:
+      - emulators
+
+volumes:
+  node_modules:

@@ -1,0 +1,16 @@
+# Firebase Emulator Suite (Auth + Firestore). The emulators run on the JVM and
+# firebase-tools requires a JDK >= 21, which Alpine packages as openjdk21.
+FROM docker.io/library/node:alpine
+
+RUN apk add --no-cache openjdk21-jre-headless
+
+RUN npm install -g firebase-tools
+
+WORKDIR /app
+
+# auth, firestore, emulator UI
+EXPOSE 9099 8080 4000
+
+# `-P demo-wallguard` runs in offline demo mode — no real Firebase project or
+# credentials are needed for local development.
+CMD ["firebase", "emulators:start", "--only", "auth,firestore", "-P", "demo-wallguard"]
