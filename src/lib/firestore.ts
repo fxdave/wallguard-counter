@@ -13,6 +13,7 @@ import {
   Timestamp,
   updateDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
 import { db } from '../firebase/config';
@@ -83,7 +84,7 @@ export async function removeMember(email: string): Promise<void> {
 // ---------------------------------------------------------------- Categories
 
 export async function listCategories(): Promise<Category[]> {
-  const snap = await getDocs(query(categoriesCol, orderBy('name')));
+  const snap = await getDocs(query(categoriesCol, orderBy('order')));
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as CategoryInput) }));
 }
 
@@ -101,6 +102,15 @@ export async function updateCategory(
 
 export async function deleteCategory(id: string): Promise<void> {
   await deleteDoc(doc(categoriesCol, id));
+}
+
+/** Reassigns order values (1000, 2000, 3000…) for all categories in the given sequence. */
+export async function reorderCategories(orderedIds: string[]): Promise<void> {
+  const batch = writeBatch(db);
+  orderedIds.forEach((id, index) => {
+    batch.update(doc(categoriesCol, id), { order: (index + 1) * 1000 });
+  });
+  await batch.commit();
 }
 
 // --------------------------------------------------------------- Pass holders
@@ -127,7 +137,7 @@ export async function createPassHolder(input: PassHolderInput): Promise<string> 
 // --------------------------------------------------------------------- Items
 
 export async function listItems(): Promise<Item[]> {
-  const snap = await getDocs(query(itemsCol, orderBy('name')));
+  const snap = await getDocs(query(itemsCol, orderBy('order')));
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as ItemInput) }));
 }
 
@@ -145,6 +155,15 @@ export async function updateItem(
 
 export async function deleteItem(id: string): Promise<void> {
   await deleteDoc(doc(itemsCol, id));
+}
+
+/** Reassigns order values (1000, 2000, 3000…) for all items in the given sequence. */
+export async function reorderItems(orderedIds: string[]): Promise<void> {
+  const batch = writeBatch(db);
+  orderedIds.forEach((id, index) => {
+    batch.update(doc(itemsCol, id), { order: (index + 1) * 1000 });
+  });
+  await batch.commit();
 }
 
 // ----------------------------------------------------------------- Checkouts
