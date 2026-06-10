@@ -65,7 +65,7 @@ export async function checkAccess(email: string): Promise<boolean> {
 }
 
 export async function listMembers(): Promise<Member[]> {
-  const snap = await getDocs(query(membersCol, orderBy('email')));
+  const snap = await getDocs(query(membersCol, orderBy('addedAt')));
   return snap.docs.map((d) => ({ email: d.id, ...(d.data() as Omit<Member, 'email'>) }));
 }
 
@@ -73,6 +73,7 @@ export async function listMembers(): Promise<Member[]> {
 export async function addMember(email: string, addedBy: string): Promise<void> {
   const normalized = normalizeEmail(email);
   await setDoc(doc(membersCol, normalized), {
+    email: normalized,
     addedBy,
     addedAt: serverTimestamp(),
   });
