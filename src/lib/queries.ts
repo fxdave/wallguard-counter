@@ -18,6 +18,8 @@ import {
   listItems,
   listMembers,
   listPassHolders,
+  reorderCategories,
+  reorderItems,
   removeMember,
   updateCategory,
   updateCheckout,
@@ -91,6 +93,10 @@ export function useCategoryMutations() {
       onSuccess: invalidate,
     }),
     remove: useMutation({ mutationFn: deleteCategory, onSuccess: invalidate }),
+    reorder: useMutation({
+      mutationFn: (orderedIds: string[]) => reorderCategories(orderedIds),
+      onSuccess: invalidate,
+    }),
   };
 }
 
@@ -132,6 +138,10 @@ export function useItemMutations() {
       onSuccess: invalidate,
     }),
     remove: useMutation({ mutationFn: deleteItem, onSuccess: invalidate }),
+    reorder: useMutation({
+      mutationFn: (orderedIds: string[]) => reorderItems(orderedIds),
+      onSuccess: invalidate,
+    }),
   };
 }
 
