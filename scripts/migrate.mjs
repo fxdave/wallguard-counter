@@ -16,7 +16,8 @@
  *   node scripts/migrate.mjs
  */
 
-import * as admin from 'firebase-admin';
+import { cert, applicationDefault, initializeApp } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { readdir } from 'fs/promises';
 import { join } from 'path';
 import { pathToFileURL } from 'url';
@@ -33,13 +34,13 @@ let credential;
 // When using the emulator with a fake SA, cert() will fail — fall back to
 // application default (which the emulator accepts without validation).
 try {
-  credential = admin.credential.cert(sa);
+  credential = cert(sa);
 } catch {
-  credential = admin.credential.applicationDefault();
+  credential = applicationDefault();
 }
 
-admin.initializeApp({ credential, projectId });
-const db = admin.firestore();
+initializeApp({ credential, projectId });
+const db = getFirestore();
 
 const migrationsDir = join(process.cwd(), 'migrations');
 let files;
@@ -73,7 +74,7 @@ for (const file of files) {
   await db
     .collection('_migrations')
     .doc(id)
-    .set({ appliedAt: admin.firestore.FieldValue.serverTimestamp() });
+    .set({ appliedAt: FieldValue.serverTimestamp() });
   console.log(`  done  ${id}`);
   ran++;
 }

@@ -13,7 +13,8 @@
  *   node scripts/import-prod-db.mjs
  */
 
-import * as admin from 'firebase-admin';
+import { cert, initializeApp as initializeAdminApp } from 'firebase-admin/app';
+import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
 import { initializeApp } from 'firebase/app';
 import {
   connectAuthEmulator,
@@ -48,8 +49,8 @@ if (!sa.project_id || !projectId) {
 }
 
 // --- Read from prod via Admin SDK ---
-admin.initializeApp({ credential: admin.credential.cert(sa), projectId });
-const prodDb = admin.firestore();
+initializeAdminApp({ credential: cert(sa), projectId });
+const prodDb = getAdminFirestore();
 
 console.log('Reading prod collections…');
 const allDocs = {};
