@@ -17,7 +17,7 @@ export function QuickAdd() {
   const { data: categories = [], isLoading: catsLoading } = useCategories();
   const { data: items = [], isLoading: itemsLoading } = useItems();
   const { create } = useCheckoutMutations();
-  const { create: createHolder } = usePassHolderMutations();
+  const { create: createHolder, incrementUsage } = usePassHolderMutations();
 
   // Normal items: simple counts. Pass items: a list of per-person entries.
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -113,8 +113,13 @@ export function QuickAdd() {
           await createHolder.mutateAsync({
             name: entry.name,
             birthday: entry.birthday,
+            startedAt: new Date().toISOString().slice(0, 10),
             passItemId: item.id,
+            usageCount: 0,
           });
+        } else if (entry.holderId) {
+          // Atomically increment usage count for existing holders.
+          incrementUsage.mutate(entry.holderId);
         }
         lines.push({
           itemId: item.id,
