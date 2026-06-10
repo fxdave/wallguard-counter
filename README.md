@@ -106,4 +106,6 @@ Required repository secrets:
 Copyright © 2026 David Biró.
 
 Licensed under the **European Union Public Licence v. 1.2** (EUPL-1.2). See
-[`LICENSE`](./LICENSE) for the full text.
+[`LICENSE`](./LICENSE) for the full text. The EUPL is a copyleft licence whose
+share-alike obligation also covers making the software available over a network,
+and it is compatible with the (A)GPL and other licences listed in its appendix.
