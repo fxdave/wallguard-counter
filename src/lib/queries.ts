@@ -13,6 +13,9 @@ import {
   deleteCategory,
   deleteCheckout,
   deleteItem,
+  deletePassHolder,
+  countPassHolders,
+  incrementPassHolderUsage,
   listCategories,
   listCheckouts,
   listItems,
@@ -22,6 +25,7 @@ import {
   updateCategory,
   updateCheckout,
   updateItem,
+  updatePassHolder,
 } from './firestore';
 import type { CategoryInput, ItemInput } from './types';
 
@@ -104,15 +108,32 @@ export function usePassHolders(passItemId: string | null) {
   });
 }
 
-export function usePassHolderMutations() {
+export function usePassHolderMutations(passItemId?: string) {
   const qc = useQueryClient();
+  const invalidate = () =>
+    qc.invalidateQueries({ queryKey: passItemId ? queryKeys.passHolders(passItemId) : ['passHolders'] });
+
   return {
     create: useMutation({
       mutationFn: createPassHolder,
       onSuccess: () => qc.invalidateQueries({ queryKey: ['passHolders'] }),
     }),
+    update: useMutation({
+      mutationFn: ({ id, input }: { id: string; input: Parameters<typeof updatePassHolder>[1] }) =>
+        updatePassHolder(id, input),
+      onSuccess: invalidate,
+    }),
+    remove: useMutation({
+      mutationFn: deletePassHolder,
+      onSuccess: invalidate,
+    }),
+    incrementUsage: useMutation({
+      mutationFn: incrementPassHolderUsage,
+    }),
   };
 }
+
+export { countPassHolders };
 
 // -------------------------------------------------------------------- Items
 
