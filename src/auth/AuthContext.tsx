@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   onAuthStateChanged,
+  signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
   type User,
@@ -25,6 +26,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       signIn: async () => {
         await signInWithPopup(auth, googleProvider);
+      },
+      signInWithEmail: async (email: string, password: string) => {
+        await signInWithEmailAndPassword(auth, email, password);
       },
       logOut: async () => {
         await signOut(auth);

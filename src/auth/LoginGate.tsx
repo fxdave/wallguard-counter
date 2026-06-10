@@ -1,17 +1,14 @@
 import { useState, type ReactNode } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from './useAuth';
 
-/**
- * Wraps the entire app. Renders a login wall until a user is signed in. Note:
- * the *real* access control is the email allowlist in firestore.rules — signing
- * in with a non-allowlisted account succeeds here but every data read/write is
- * denied by the rules.
- */
 export function LoginGate({ children }: { children: ReactNode }) {
-  const { user, loading, signIn } = useAuth();
+  const { user, loading, signIn, signInWithEmail } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   if (loading) {
     return (
@@ -28,13 +25,35 @@ export function LoginGate({ children }: { children: ReactNode }) {
 
   if (user) return <>{children}</>;
 
-  const handleSignIn = async () => {
+  const handleGoogleSignIn = async () => {
     setError(null);
     setBusy(true);
     try {
       await signIn();
     } catch {
       setError('Sign-in failed. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      await signInWithEmail(email.trim(), password);
+    } catch (err) {
+      const code = (err as { code?: string }).code ?? '';
+      if (
+        code === 'auth/wrong-password' ||
+        code === 'auth/user-not-found' ||
+        code === 'auth/invalid-credential'
+      ) {
+        setError('Invalid email or password.');
+      } else {
+        setError('Sign-in failed. Please try again.');
+      }
     } finally {
       setBusy(false);
     }
@@ -64,15 +83,78 @@ export function LoginGate({ children }: { children: ReactNode }) {
           Tally the household. Sign in to continue.
         </p>
 
-        <button
-          type="button"
-          onClick={handleSignIn}
-          disabled={busy}
-          className="mt-8 flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3 font-medium text-black transition hover:bg-lime-200 disabled:opacity-60"
-        >
-          <GoogleMark />
-          {busy ? 'Signing in…' : 'Continue with Google'}
-        </button>
+        <div className="mt-8 space-y-3">
+          {/* Email/password toggle button or form */}
+          <AnimatePresence initial={false}>
+            {showEmailForm ? (
+              <motion.form
+                key="email-form"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                onSubmit={(e) => void handleEmailSignIn(e)}
+                className="overflow-hidden space-y-2"
+              >
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  autoFocus
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-lime-300/60 focus:ring-2 focus:ring-lime-300/20"
+                />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-lime-300/60 focus:ring-2 focus:ring-lime-300/20"
+                />
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => { setShowEmailForm(false); setError(null); }}
+                    className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/60 transition hover:bg-white/10 disabled:opacity-60"
+                    disabled={busy}
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={busy || !email.trim() || !password}
+                    className="flex-1 rounded-xl bg-lime-300 px-4 py-2.5 text-sm font-medium text-black transition hover:bg-lime-200 disabled:opacity-60"
+                  >
+                    {busy ? 'Signing in…' : 'Sign in'}
+                  </button>
+                </div>
+              </motion.form>
+            ) : (
+              <motion.button
+                key="email-button"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                type="button"
+                onClick={() => { setShowEmailForm(true); setError(null); }}
+                className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 font-medium text-white/80 transition hover:bg-white/10"
+              >
+                Sign in with email
+              </motion.button>
+            )}
+          </AnimatePresence>
+
+          {/* Google */}
+          <button
+            type="button"
+            onClick={() => void handleGoogleSignIn()}
+            disabled={busy}
+            className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3 font-medium text-black transition hover:bg-lime-200 disabled:opacity-60"
+          >
+            <GoogleMark />
+            {busy ? 'Signing in…' : 'Continue with Google'}
+          </button>
+        </div>
 
         {error && (
           <p className="mt-4 text-center text-sm text-red-400">{error}</p>
