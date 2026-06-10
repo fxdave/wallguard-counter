@@ -5,6 +5,8 @@
  * @vitest-environment node
  */
 import { describe, it, expect } from 'vitest';
+
+const emulatorAvailable = !!process.env.FIRESTORE_EMULATOR_HOST;
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 // @ts-expect-error — .mjs outside tsconfig include; allowed for test-only use
@@ -24,7 +26,7 @@ async function clearCollection(db: Firestore, col: string) {
   await batch.commit();
 }
 
-describe('migration 001: add_order', () => {
+describe.skipIf(!emulatorAvailable)('migration 001: add_order', () => {
   it('backfills order on categories and items sorted by name', async () => {
     const db = getAdminDb();
 
