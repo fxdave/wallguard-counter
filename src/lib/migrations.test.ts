@@ -7,7 +7,6 @@
 import { describe, it, expect } from 'vitest';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error — .mjs outside tsconfig include; allowed for test-only use
 import { run } from '../../migrations/001_add_order.mjs';
 
