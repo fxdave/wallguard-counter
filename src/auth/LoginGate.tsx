@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from './useAuth';
 
@@ -37,7 +37,7 @@ export function LoginGate({ children }: { children: ReactNode }) {
     }
   };
 
-  const handleEmailSignIn = async (e: React.FormEvent) => {
+  const handleEmailSignIn = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setBusy(true);

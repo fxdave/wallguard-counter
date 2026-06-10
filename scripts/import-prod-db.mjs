@@ -26,9 +26,7 @@ import {
   getFirestore,
   collection,
   doc,
-  setDoc,
   getDocs,
-  deleteDoc,
   writeBatch,
 } from 'firebase/firestore';
 
