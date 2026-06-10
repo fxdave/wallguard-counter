@@ -10,9 +10,11 @@ import {
   SelectField,
   CheckboxField,
 } from '../../components/ui/Field';
-import { useItems, useItemMutations, useCategories } from '../../lib/queries';
+import { useItems, useItemMutations, useCategories, usePassHolders, usePassHolderMutations } from '../../lib/queries';
+import { countPassHolders } from '../../lib/firestore';
 import { formatPrice } from '../../lib/format';
-import type { Item } from '../../lib/types';
+import { DateField } from '../../components/ui/DateField';
+import type { Item, PassHolder } from '../../lib/types';
 
 interface ItemFormState {
   name: string;
@@ -20,6 +22,8 @@ interface ItemFormState {
   price: string;
   categoryId: string;
   isPass: boolean;
+  canExpire: boolean;
+  expiryExpression: string;
 }
 
 const emptyForm = (defaultCategoryId = ''): ItemFormState => ({
@@ -28,6 +32,8 @@ const emptyForm = (defaultCategoryId = ''): ItemFormState => ({
   price: '0',
   categoryId: defaultCategoryId,
   isPass: false,
+  canExpire: false,
+  expiryExpression: '',
 });
 
 type ModalMode =
@@ -36,6 +42,133 @@ type ModalMode =
   | { type: 'edit'; item: Item };
 
 type DeleteState = { open: false } | { open: true; item: Item };
+
+function PassHoldersSection({ passItemId }: { passItemId: string }) {
+  const { data: holders = [], isLoading } = usePassHolders(passItemId);
+  const { create, update, remove } = usePassHolderMutations(passItemId);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const [addForm, setAddForm] = useState({ name: '', birthday: '', startedAt: today });
+  const [addError, setAddError] = useState('');
+  const [editHolder, setEditHolder] = useState<PassHolder | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', birthday: '', startedAt: '' });
+
+  async function handleAdd() {
+    if (!addForm.name.trim() || !addForm.birthday || !addForm.startedAt) {
+      setAddError('Name, birthday, and started date are required.');
+      return;
+    }
+    await create.mutateAsync({
+      name: addForm.name.trim(),
+      birthday: addForm.birthday,
+      startedAt: addForm.startedAt,
+      passItemId,
+      usageCount: 0,
+    });
+    setAddForm({ name: '', birthday: '', startedAt: today });
+    setAddError('');
+  }
+
+  function openEditHolder(h: PassHolder) {
+    setEditHolder(h);
+    setEditForm({ name: h.name, birthday: h.birthday, startedAt: h.startedAt });
+  }
+
+  async function handleEditSave() {
+    if (!editHolder) return;
+    await update.mutateAsync({
+      id: editHolder.id,
+      input: {
+        name: editForm.name.trim(),
+        birthday: editForm.birthday,
+        startedAt: editForm.startedAt,
+      },
+    });
+    setEditHolder(null);
+  }
+
+  async function handleRemove(id: string) {
+    await remove.mutateAsync(id);
+  }
+
+  return (
+    <div className="border-t border-white/10 pt-4 mt-2">
+      <p className="mb-3 text-xs font-medium uppercase tracking-wider text-white/40">
+        Pass Holders
+      </p>
+
+      {isLoading ? (
+        <p className="text-sm text-white/30">Loading…</p>
+      ) : holders.length === 0 ? (
+        <p className="mb-3 text-sm text-white/30">No holders registered yet.</p>
+      ) : editHolder ? (
+        <div className="mb-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <p className="text-xs font-medium text-white/50">Editing {editHolder.name}</p>
+          <input
+            className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-lime-300/60"
+            placeholder="Name"
+            value={editForm.name}
+            onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+          />
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <DateField label="Birthday" value={editForm.birthday} onChange={(v) => setEditForm((f) => ({ ...f, birthday: v }))} />
+            </div>
+            <div className="flex-1">
+              <DateField label="Started at" value={editForm.startedAt} onChange={(v) => setEditForm((f) => ({ ...f, startedAt: v }))} />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" className="!py-1 text-xs" onClick={() => setEditHolder(null)}>Cancel</Button>
+            <Button variant="primary" className="!py-1 text-xs" onClick={() => void handleEditSave()} disabled={update.isPending}>
+              {update.isPending ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <ul className="mb-3 space-y-1">
+          {holders.map((h) => (
+            <li key={h.id} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm">
+              <span className="flex-1 min-w-0">
+                <span className="block truncate font-medium">{h.name}</span>
+                <span className="block text-xs text-white/40">
+                  🎂 {h.birthday} · started {h.startedAt} · {h.usageCount} uses
+                </span>
+              </span>
+              <Button variant="subtle" className="!px-2 !py-1 text-xs shrink-0" onClick={() => openEditHolder(h)}>Edit</Button>
+              <Button variant="danger" className="!px-2 !py-1 text-xs shrink-0" onClick={() => void handleRemove(h.id)} disabled={remove.isPending}>Del</Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Add form */}
+      {!editHolder && (
+        <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+          <p className="text-xs text-white/40">Add holder</p>
+          <input
+            className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-lime-300/60"
+            placeholder="Name"
+            value={addForm.name}
+            onChange={(e) => { setAddForm((f) => ({ ...f, name: e.target.value })); setAddError(''); }}
+          />
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <DateField label="Birthday" value={addForm.birthday} onChange={(v) => { setAddForm((f) => ({ ...f, birthday: v })); setAddError(''); }} />
+            </div>
+            <div className="flex-1">
+              <DateField label="Started at" value={addForm.startedAt} onChange={(v) => setAddForm((f) => ({ ...f, startedAt: v }))} />
+            </div>
+          </div>
+          {addError && <p className="text-xs text-red-400">{addError}</p>}
+          <Button variant="primary" className="w-full !py-1.5 text-xs" onClick={() => void handleAdd()} disabled={create.isPending}>
+            {create.isPending ? 'Adding…' : '+ Add holder'}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ItemsSection() {
   const { data: items = [], isLoading: itemsLoading } = useItems();
@@ -62,6 +195,8 @@ export function ItemsSection() {
       price: String(item.price),
       categoryId: item.categoryId,
       isPass: item.isPass ?? false,
+      canExpire: item.canExpire ?? false,
+      expiryExpression: item.expiryExpression ?? '',
     });
     setErrors({});
     setModal({ type: 'edit', item });
@@ -90,6 +225,10 @@ export function ItemsSection() {
       price: parseFloat(form.price) || 0,
       categoryId: form.categoryId,
       isPass: form.isPass,
+      ...(form.isPass ? {
+        canExpire: form.canExpire,
+        expiryExpression: form.canExpire ? form.expiryExpression.trim() : '',
+      } : {}),
     };
 
     if (modal.type === 'add') {
@@ -102,6 +241,14 @@ export function ItemsSection() {
 
   async function handleDelete() {
     if (!deleteState.open) return;
+    if (deleteState.item.isPass) {
+      const holderCount = await countPassHolders(deleteState.item.id);
+      if (holderCount > 0) {
+        setDeleteState({ open: false });
+        alert(`Remove all ${holderCount} pass holder(s) before deleting this item.`);
+        return;
+      }
+    }
     await remove.mutateAsync(deleteState.item.id);
     setDeleteState({ open: false });
   }
@@ -244,6 +391,38 @@ export function ItemsSection() {
             checked={form.isPass}
             onChange={(v) => setForm((f) => ({ ...f, isPass: v }))}
           />
+          {form.isPass && (
+            <div className="space-y-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
+              <CheckboxField
+                label="Pass can expire"
+                description="Enables an expiry expression evaluated at check-in time."
+                checked={form.canExpire}
+                onChange={(v) => setForm((f) => ({ ...f, canExpire: v }))}
+              />
+              {form.canExpire && (
+                <div>
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/40">
+                      Expiry expression
+                    </span>
+                    <textarea
+                      className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs font-mono text-white placeholder:text-white/30 outline-none transition focus:border-lime-300/60 focus:ring-2 focus:ring-lime-300/20 resize-none"
+                      rows={3}
+                      placeholder={'holder.usageCount >= 10 || new Date(holder.startedAt) < new Date(today - 30 * 86400000)'}
+                      value={form.expiryExpression}
+                      onChange={(e) => setForm((f) => ({ ...f, expiryExpression: e.target.value }))}
+                    />
+                  </label>
+                  <p className="mt-1 text-xs text-white/30">
+                    Receives <code className="text-white/50">holder</code> (PassHolder) and <code className="text-white/50">today</code> (Date). Return <code className="text-white/50">true</code> if invalid.
+                  </p>
+                </div>
+              )}
+              {modal.type === 'edit' && modal.item.isPass && (
+                <PassHoldersSection passItemId={modal.item.id} />
+              )}
+            </div>
+          )}
         </div>
       </Modal>
 
