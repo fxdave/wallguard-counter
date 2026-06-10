@@ -25,14 +25,14 @@ export function Settings() {
       />
 
       {/* Tab bar */}
-      <div className="mb-6 flex gap-1 rounded-2xl border border-white/10 bg-white/[0.03] p-1">
+      <div className="mb-6 flex gap-1 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03] p-1 scrollbar-none">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActive(tab.id)}
             className={[
-              'flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition',
+              'shrink-0 flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition',
               active === tab.id
                 ? 'bg-lime-300 text-black shadow-sm'
                 : 'text-white/50 hover:bg-white/5 hover:text-white',
