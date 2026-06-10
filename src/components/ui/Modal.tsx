@@ -40,18 +40,21 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className="relative w-full max-w-md rounded-3xl border border-white/10 bg-[#141419] p-6 shadow-2xl shadow-black/50"
+            className="relative flex w-full max-w-md flex-col rounded-3xl border border-white/10 bg-[#141419] shadow-2xl shadow-black/50"
+            style={{ maxHeight: 'min(90dvh, 900px)' }}
             initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
-            <h2 className="font-display text-xl font-bold tracking-tight">
-              {title}
-            </h2>
-            <div className="mt-4">{children}</div>
+            <div className="flex-none px-6 pt-6 pb-0">
+              <h2 className="font-display text-xl font-bold tracking-tight">
+                {title}
+              </h2>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">{children}</div>
             {footer && (
-              <div className="mt-6 flex justify-end gap-2">{footer}</div>
+              <div className="flex-none border-t border-white/5 px-6 py-4 flex justify-end gap-2">{footer}</div>
             )}
           </motion.div>
         </motion.div>

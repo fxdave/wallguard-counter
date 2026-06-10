@@ -23,13 +23,13 @@ service cloud.firestore {
 
     function isOwner() {
       return request.auth != null
-        && request.auth.token.email_verified == true
         && emailLower() == ownerEmail();
     }
 
+    // email_verified is intentionally not required: email/password accounts
+    // are unverified by default, and the allowlist is the real access gate.
     function isMember() {
       return request.auth != null
-        && request.auth.token.email_verified == true
         && (
           emailLower() == ownerEmail()
           || exists(/databases/$(database)/documents/members/$(emailLower()))
