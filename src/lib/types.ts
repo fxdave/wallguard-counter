@@ -22,6 +22,16 @@ export interface Item {
    * registered and counted at `price`. Absent/false for normal items.
    */
   isPass?: boolean;
+  /** When true, the pass can expire based on `expiryExpression`. */
+  canExpire?: boolean;
+  /**
+   * A JS expression string evaluated at check-in time. Receives `holder`
+   * (PassHolder) and `today` (Date). Should return `true` if the pass is
+   * expired/over-limit. Only used when `canExpire` is true.
+   */
+  expiryExpression?: string;
+  /** Sort order for display. Higher numbers appear later. */
+  order?: number;
 }
 
 /**
@@ -36,6 +46,10 @@ export interface PassHolder {
   birthday: string;
   /** The pass item (`Item.id`, where `isPass`) this holder belongs to. */
   passItemId: string;
+  /** `YYYY-MM-DD` — the date this holder started using the pass. */
+  startedAt: string;
+  /** Number of times this holder has used the pass. */
+  usageCount: number;
   createdAt: Timestamp;
 }
 
