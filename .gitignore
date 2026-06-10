@@ -26,3 +26,4 @@ emulator-data/
 
 # Logs
 npm-debug.log*
+.claude/worktrees/
