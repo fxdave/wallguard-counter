@@ -8,9 +8,29 @@ interface ItemCardProps {
   count: number;
   onIncrement: () => void;
   onDecrement: () => void;
+  /** Optional pill shown next to the name (e.g. "PASS"). */
+  badge?: string;
+  /**
+   * Overrides the price line. `undefined` falls back to the item's unit price;
+   * `null` hides it. Used by pass items to show a running subtotal instead.
+   */
+  priceText?: string | null;
 }
 
-export function ItemCard({ item, count, onIncrement, onDecrement }: ItemCardProps) {
+export function ItemCard({
+  item,
+  count,
+  onIncrement,
+  onDecrement,
+  badge,
+  priceText,
+}: ItemCardProps) {
+  const priceDisplay =
+    priceText !== undefined
+      ? priceText
+      : item.price !== 0
+        ? formatPrice(item.price)
+        : null;
   const active = count > 0;
   // Track direction for count animation
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -84,17 +104,27 @@ export function ItemCard({ item, count, onIncrement, onDecrement }: ItemCardProp
           >
             {item.name}
           </span>
+          {badge && (
+            <span
+              className={[
+                'shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide',
+                active ? 'bg-black/15 text-black/70' : 'bg-lime-300/15 text-lime-300',
+              ].join(' ')}
+            >
+              {badge}
+            </span>
+          )}
         </div>
 
-        {/* Price (only when price != 0) */}
-        {item.price !== 0 && (
+        {/* Price / subtotal */}
+        {priceDisplay !== null && (
           <span
             className={[
               'text-xs font-medium',
               active ? 'text-black/60' : 'text-white/30',
             ].join(' ')}
           >
-            {formatPrice(item.price)}
+            {priceDisplay}
           </span>
         )}
       </div>

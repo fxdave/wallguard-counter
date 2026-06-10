@@ -3,7 +3,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { TextField, IconField, NumberField, SelectField } from '../../components/ui/Field';
+import {
+  TextField,
+  IconField,
+  NumberField,
+  SelectField,
+  CheckboxField,
+} from '../../components/ui/Field';
 import { useItems, useItemMutations, useCategories } from '../../lib/queries';
 import { formatPrice } from '../../lib/format';
 import type { Item } from '../../lib/types';
@@ -13,6 +19,7 @@ interface ItemFormState {
   icon: string;
   price: string;
   categoryId: string;
+  isPass: boolean;
 }
 
 const emptyForm = (defaultCategoryId = ''): ItemFormState => ({
@@ -20,6 +27,7 @@ const emptyForm = (defaultCategoryId = ''): ItemFormState => ({
   icon: '',
   price: '0',
   categoryId: defaultCategoryId,
+  isPass: false,
 });
 
 type ModalMode =
@@ -53,6 +61,7 @@ export function ItemsSection() {
       icon: item.icon,
       price: String(item.price),
       categoryId: item.categoryId,
+      isPass: item.isPass ?? false,
     });
     setErrors({});
     setModal({ type: 'edit', item });
@@ -80,6 +89,7 @@ export function ItemsSection() {
       icon: form.icon.trim(),
       price: parseFloat(form.price) || 0,
       categoryId: form.categoryId,
+      isPass: form.isPass,
     };
 
     if (modal.type === 'add') {
@@ -147,7 +157,14 @@ export function ItemsSection() {
                 >
                   <span className="text-2xl leading-none">{item.icon || '·'}</span>
                   <span className="flex-1 min-w-0">
-                    <span className="block text-sm font-medium truncate">{item.name}</span>
+                    <span className="flex items-center gap-2 text-sm font-medium">
+                      <span className="truncate">{item.name}</span>
+                      {item.isPass && (
+                        <span className="shrink-0 rounded-md bg-lime-300/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-lime-300">
+                          Pass
+                        </span>
+                      )}
+                    </span>
                     <span className="block text-xs text-white/40 truncate">
                       {cat ? `${cat.icon || ''} ${cat.name}`.trim() : 'Unknown category'}
                       {item.price > 0 && (
@@ -221,6 +238,12 @@ export function ItemsSection() {
             ))}
           </SelectField>
           {errors.categoryId && <p className="text-xs text-red-400 -mt-2">{errors.categoryId}</p>}
+          <CheckboxField
+            label="This is a pass"
+            description="Adding it in Quick Add searches pass holders by name + birthday. Known holders count free; new people are registered and charged the price above."
+            checked={form.isPass}
+            onChange={(v) => setForm((f) => ({ ...f, isPass: v }))}
+          />
         </div>
       </Modal>
 

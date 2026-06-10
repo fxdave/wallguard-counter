@@ -3,13 +3,15 @@ import { PageHeader } from '../components/PageHeader';
 import { CategoriesSection } from './settings/CategoriesSection';
 import { ItemsSection } from './settings/ItemsSection';
 import { CheckoutsSection } from './settings/CheckoutsSection';
+import { MembersSection } from './settings/MembersSection';
 
-type Tab = 'categories' | 'items' | 'checkouts';
+type Tab = 'categories' | 'items' | 'checkouts' | 'members';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'categories', label: 'Categories' },
   { id: 'items', label: 'Items' },
   { id: 'checkouts', label: 'Checkouts' },
+  { id: 'members', label: 'Members' },
 ];
 
 export function Settings() {
@@ -46,6 +48,7 @@ export function Settings() {
         {active === 'categories' && <CategoriesSection />}
         {active === 'items' && <ItemsSection />}
         {active === 'checkouts' && <CheckoutsSection />}
+        {active === 'members' && <MembersSection />}
       </div>
     </>
   );

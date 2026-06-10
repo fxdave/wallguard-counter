@@ -2,29 +2,48 @@ rules_version = '2';
 
 // Wallguard Counter — shared, household-style access.
 //
-// There is no per-user data and no backend. Access control is THIS FILE: a
-// hard-coded allowlist of emails. To add or remove a member, edit `allowlist`
-// below and push to `main`; CI deploys the rules. Everyone on the list shares
-// the same categories / items / checkouts.
+// There is no backend. Access control lives here: a member is anyone whose
+// (lowercased) email has a document in the `members` collection, plus the
+// hardcoded OWNER below. Members manage the member list themselves from the
+// Settings page (flat model — any member can add/remove others). The OWNER is
+// the bootstrap superadmin: always allowed, never removable, used to seed the
+// very first members when the collection is empty.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function allowlist() {
-      return [
-        // Add member emails here (lowercase). Example:
-        // 'alice@example.com',
-        // 'bob@example.com',
-      ];
+    // The bootstrap owner's Google email (lowercase). This single value seeds
+    // access; everything else is managed in the UI (Settings → Members).
+    function ownerEmail() {
+      return 'dbiro97@gmail.com';
+    }
+
+    function emailLower() {
+      return request.auth.token.email.lower();
+    }
+
+    function isOwner() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && emailLower() == ownerEmail();
     }
 
     function isMember() {
       return request.auth != null
         && request.auth.token.email_verified == true
-        && request.auth.token.email in allowlist();
+        && (
+          emailLower() == ownerEmail()
+          || exists(/databases/$(database)/documents/members/$(emailLower()))
+        );
     }
 
-    // Shared top-level collections — full access for members, nothing for
-    // anyone else.
+    // The allowlist itself. Any member may read and manage it (flat model).
+    // The owner has no document and is always allowed regardless, so they can
+    // never be locked out.
+    match /members/{email} {
+      allow read, write: if isMember();
+    }
+
+    // Shared app data — members only.
     match /categories/{id} {
       allow read, write: if isMember();
     }
@@ -32,6 +51,9 @@ service cloud.firestore {
       allow read, write: if isMember();
     }
     match /checkouts/{id} {
+      allow read, write: if isMember();
+    }
+    match /passHolders/{id} {
       allow read, write: if isMember();
     }
 

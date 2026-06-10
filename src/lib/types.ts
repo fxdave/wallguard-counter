@@ -16,7 +16,30 @@ export interface Item {
   /** Unit price. `0` means "free / don't show price". */
   price: number;
   categoryId: string;
+  /**
+   * When true this item is a "pass": adding it in Quick Add opens a search of
+   * its pass holders. A known holder counts at price 0; an unknown person is
+   * registered and counted at `price`. Absent/false for normal items.
+   */
+  isPass?: boolean;
 }
+
+/**
+ * A person who holds a given pass. Scoped to one pass item via `passItemId`, so
+ * holding the gym pass doesn't imply holding the pool pass. Searched by name +
+ * birthday in the Quick Add pass modal.
+ */
+export interface PassHolder {
+  id: string;
+  name: string;
+  /** `YYYY-MM-DD` (date-input value). */
+  birthday: string;
+  /** The pass item (`Item.id`, where `isPass`) this holder belongs to. */
+  passItemId: string;
+  createdAt: Timestamp;
+}
+
+export type PassHolderInput = Omit<PassHolder, 'id' | 'createdAt'>;
 
 /**
  * One line within a checkout. `name` and `price` are SNAPSHOTTED at save time
@@ -28,6 +51,10 @@ export interface CheckoutLine {
   name: string;
   price: number;
   quantity: number;
+  /** For pass entries: the person this line was counted for (snapshotted). */
+  holderName?: string;
+  /** For pass entries: the person's birthday (`YYYY-MM-DD`), snapshotted. */
+  holderBirthday?: string;
 }
 
 /** A batch counting session saved from the Quick Add page. */
@@ -37,6 +64,19 @@ export interface Checkout {
   /** Sum of `price * quantity` across all lines, snapshotted at save time. */
   total: number;
   lines: CheckoutLine[];
+}
+
+/**
+ * An eligible user. The document id is the member's lowercased email, so rules
+ * can gate access with a cheap `exists(/members/$(email))` check. The bootstrap
+ * owner (hardcoded in firestore.rules) has access without a document.
+ */
+export interface Member {
+  /** Lowercased email — also the Firestore document id. */
+  email: string;
+  /** Email of the member who added this one (or "owner" when seeded). */
+  addedBy: string;
+  addedAt: Timestamp;
 }
 
 /** Payloads for create/update — the `id` is assigned by Firestore. */

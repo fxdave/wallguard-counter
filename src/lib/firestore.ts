@@ -3,15 +3,18 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   orderBy,
   query,
   type QueryConstraint,
   serverTimestamp,
+  setDoc,
   Timestamp,
   updateDoc,
   where,
 } from 'firebase/firestore';
+import { FirebaseError } from 'firebase/app';
 import { db } from '../firebase/config';
 import type {
   Category,
@@ -20,6 +23,9 @@ import type {
   CheckoutInput,
   Item,
   ItemInput,
+  Member,
+  PassHolder,
+  PassHolderInput,
 } from './types';
 
 /**
@@ -31,6 +37,48 @@ import type {
 const categoriesCol = collection(db, 'categories');
 const itemsCol = collection(db, 'items');
 const checkoutsCol = collection(db, 'checkouts');
+const membersCol = collection(db, 'members');
+const passHoldersCol = collection(db, 'passHolders');
+
+// ------------------------------------------------------------------- Members
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
+/**
+ * Determine whether the signed-in user is allowed to use the app. Reads of the
+ * `members` collection are themselves gated by `isMember()` in the rules, so a
+ * successful read means the caller is a member (or the owner); a
+ * permission-denied means they are not. Other errors propagate.
+ */
+export async function checkAccess(email: string): Promise<boolean> {
+  try {
+    await getDoc(doc(membersCol, normalizeEmail(email)));
+    return true;
+  } catch (err) {
+    if (err instanceof FirebaseError && err.code === 'permission-denied') {
+      return false;
+    }
+    throw err;
+  }
+}
+
+export async function listMembers(): Promise<Member[]> {
+  const snap = await getDocs(query(membersCol, orderBy('email')));
+  return snap.docs.map((d) => ({ email: d.id, ...(d.data() as Omit<Member, 'email'>) }));
+}
+
+/** Add an eligible user. Idempotent — the email is the document id. */
+export async function addMember(email: string, addedBy: string): Promise<void> {
+  const normalized = normalizeEmail(email);
+  await setDoc(doc(membersCol, normalized), {
+    addedBy,
+    addedAt: serverTimestamp(),
+  });
+}
+
+export async function removeMember(email: string): Promise<void> {
+  await deleteDoc(doc(membersCol, normalizeEmail(email)));
+}
 
 // ---------------------------------------------------------------- Categories
 
@@ -53,6 +101,27 @@ export async function updateCategory(
 
 export async function deleteCategory(id: string): Promise<void> {
   await deleteDoc(doc(categoriesCol, id));
+}
+
+// --------------------------------------------------------------- Pass holders
+
+/** List the holders of a given pass item, ordered by name. */
+export async function listPassHolders(passItemId: string): Promise<PassHolder[]> {
+  const snap = await getDocs(
+    query(passHoldersCol, where('passItemId', '==', passItemId), orderBy('name')),
+  );
+  return snap.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as Omit<PassHolder, 'id'>),
+  }));
+}
+
+export async function createPassHolder(input: PassHolderInput): Promise<string> {
+  const ref = await addDoc(passHoldersCol, {
+    ...input,
+    createdAt: serverTimestamp(),
+  });
+  return ref.id;
 }
 
 // --------------------------------------------------------------------- Items

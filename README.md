@@ -53,11 +53,23 @@ npm run dev               # terminal 2
 
 Run a single test file: `npm run test -- src/lib/csv.test.ts`
 
-## Adding a household member
+## Access control & adding members
 
-Edit the `allowlist()` function in [`firestore.rules`](./firestore.rules), add
-the member's (lowercase) Google email, and push to `main`. CI deploys the rules.
-There is no admin UI by design.
+Access is a **dynamic allowlist** stored in the Firestore `members` collection
+and enforced by [`firestore.rules`](./firestore.rules) (every read/write checks
+`exists(/members/<your-email>)`). Anyone can sign in with Google, but a
+signed-in user who isn't on the allowlist sees an "Access pending" screen — they
+can't read or write anything.
+
+- **Bootstrap owner:** because the collection starts empty, one owner email is
+  hardcoded in `firestore.rules` (`ownerEmail()`). Set it to your Google email
+  before deploying. The owner always has access and can never be locked out.
+- **Managing members:** the owner (and any existing member) adds/removes people
+  from **Settings → Members** in the app — no redeploy needed. This is a flat
+  model: every member can manage the list.
+
+The local emulator uses open dev rules (`firestore.dev.rules`), so the access
+gate passes for any signed-in account during development.
 
 ## Deployment
 

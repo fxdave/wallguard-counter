@@ -75,6 +75,35 @@ export function NumberField({
   );
 }
 
+export function CheckboxField({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description?: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 transition hover:bg-black/30">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 size-4 shrink-0 accent-lime-300"
+      />
+      <span className="min-w-0">
+        <span className="block text-sm font-medium text-white/80">{label}</span>
+        {description && (
+          <span className="mt-0.5 block text-xs text-white/40">{description}</span>
+        )}
+      </span>
+    </label>
+  );
+}
+
 export function SelectField({
   label,
   className = '',

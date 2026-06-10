@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
 import { LoginGate } from './auth/LoginGate';
+import { MembershipGate } from './auth/MembershipGate';
 import { App } from './App';
 import './index.css';
 
@@ -21,9 +22,11 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <LoginGate>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
+          <MembershipGate>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </MembershipGate>
         </LoginGate>
       </AuthProvider>
     </QueryClientProvider>

@@ -13,7 +13,7 @@ A **Counter** web app for a household-style group of users. It counts items (nam
 ## Architecture (the parts that span multiple files)
 
 - **Fully client-side SPA — there is no backend.** Free Firebase hosting (Spark plan) rules out Cloud Functions, so *all* business logic lives in the React client plus Firestore Security Rules. Treat `firestore.rules` as real application logic, not boilerplate.
-- **Auth is the gate for everything.** Google sign-in; the whole app sits behind a login wall. Access control is an **email allowlist hard-coded in `firestore.rules`** (version-controlled, deployed by CI). Adding a member = edit the rules and push — there is no admin UI. Rules allow read/write only when `request.auth.token.email` is in the allowlist.
+- **Auth is the gate for everything.** Google sign-in; the whole app sits behind a login wall (`LoginGate`) and then a `MembershipGate`. Access control is a **dynamic email allowlist in the `members` collection**, enforced by `firestore.rules` via `exists(/members/$(email.lower()))`. One **owner email is hardcoded** in the rules (`ownerEmail()`) as the bootstrap superadmin (the collection starts empty). Members manage the allowlist from **Settings → Members** — flat model, any member can add/remove others. `MembershipGate` shows an "Access pending" screen to signed-in non-members (UX only; rules are the real enforcement). The local emulator uses open dev rules (`firestore.dev.rules`).
 - **All collections are shared**, not per-user — every allowlisted user sees the same data.
 - **Snapshot-on-write is the core data-integrity rule.** A checkout copies each line's `name` and `price` into the checkout document at save time. Past checkouts and exports must stay accurate even after an item is renamed, repriced, or deleted — which is why items can be hard-deleted freely. Never resolve historical checkout display/export values by looking up the current item.
 
@@ -22,6 +22,7 @@ A **Counter** web app for a household-style group of users. It counts items (nam
 - `categories/{id}` → `{ name, icon }`
 - `items/{id}` → `{ name, icon, price, categoryId }`
 - `checkouts/{id}` → `{ createdAt: Timestamp, total, lines: [{ itemId, name, price, quantity }] }`
+- `members/{emailLower}` → `{ addedBy, addedAt }` — the dynamic allowlist (doc id is the lowercased email so rules can `exists()`-check it).
 
 ### Page behaviors that aren't obvious from the UI
 

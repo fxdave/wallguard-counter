@@ -4,15 +4,21 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import {
+  addMember,
+  checkAccess,
   createCategory,
   createCheckout,
   createItem,
+  createPassHolder,
   deleteCategory,
   deleteCheckout,
   deleteItem,
   listCategories,
   listCheckouts,
   listItems,
+  listMembers,
+  listPassHolders,
+  removeMember,
   updateCategory,
   updateCheckout,
   updateItem,
@@ -23,11 +29,48 @@ import type { CategoryInput, ItemInput } from './types';
 export const queryKeys = {
   categories: ['categories'] as const,
   items: ['items'] as const,
+  members: ['members'] as const,
+  access: (email: string) => ['access', email] as const,
+  passHolders: (passItemId: string) => ['passHolders', passItemId] as const,
   checkouts: (range?: { from: Date; to: Date }) =>
     range
       ? (['checkouts', range.from.toISOString(), range.to.toISOString()] as const)
       : (['checkouts'] as const),
 };
+
+// ------------------------------------------------------------------ Members
+
+/** Whether the given email is allowed to use the app (drives the access gate). */
+export function useAccess(email: string | null | undefined) {
+  return useQuery({
+    queryKey: queryKeys.access(email ?? ''),
+    queryFn: () => checkAccess(email as string),
+    enabled: !!email,
+    retry: false,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useMembers() {
+  return useQuery({ queryKey: queryKeys.members, queryFn: listMembers });
+}
+
+export function useMemberMutations() {
+  const qc = useQueryClient();
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: queryKeys.members });
+    qc.invalidateQueries({ queryKey: ['access'] });
+  };
+
+  return {
+    add: useMutation({
+      mutationFn: ({ email, addedBy }: { email: string; addedBy: string }) =>
+        addMember(email, addedBy),
+      onSuccess: invalidate,
+    }),
+    remove: useMutation({ mutationFn: removeMember, onSuccess: invalidate }),
+  };
+}
 
 // --------------------------------------------------------------- Categories
 
@@ -48,6 +91,26 @@ export function useCategoryMutations() {
       onSuccess: invalidate,
     }),
     remove: useMutation({ mutationFn: deleteCategory, onSuccess: invalidate }),
+  };
+}
+
+// -------------------------------------------------------------- Pass holders
+
+export function usePassHolders(passItemId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.passHolders(passItemId ?? ''),
+    queryFn: () => listPassHolders(passItemId as string),
+    enabled: !!passItemId,
+  });
+}
+
+export function usePassHolderMutations() {
+  const qc = useQueryClient();
+  return {
+    create: useMutation({
+      mutationFn: createPassHolder,
+      onSuccess: () => qc.invalidateQueries({ queryKey: ['passHolders'] }),
+    }),
   };
 }
 

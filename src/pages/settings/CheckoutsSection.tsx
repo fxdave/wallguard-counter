@@ -85,12 +85,17 @@ function CheckoutRow({ checkout, onEdit, onDelete }: CheckoutRowProps) {
             className="overflow-hidden"
           >
             <ul className="border-t border-white/5 px-4 pb-3 pt-2 space-y-1">
-              {checkout.lines.map((line) => (
+              {checkout.lines.map((line, i) => (
                 <li
-                  key={line.itemId}
+                  key={i}
                   className="flex items-center justify-between text-xs text-white/60"
                 >
-                  <span>{line.name}</span>
+                  <span className="min-w-0 truncate">
+                    {line.name}
+                    {line.holderName && (
+                      <span className="ml-1.5 text-white/35">— {line.holderName}</span>
+                    )}
+                  </span>
                   <span className="flex items-center gap-3">
                     <span>×{line.quantity}</span>
                     {line.price > 0 && (
@@ -135,22 +140,27 @@ export function CheckoutsSection() {
     setEditState({ open: false });
   }
 
-  /** Add the selected item as a new line, or bump its quantity if already present. */
+  /**
+   * Add the selected item as a line. Pass items always append a fresh line
+   * (each can carry its own holder); normal items bump an existing line if
+   * present, else append. Snapshots name + price like a real checkout save.
+   */
   function addLine() {
     const item = items.find((i) => i.id === addItemId);
     if (!item) return;
     setEditState((s) => {
       if (!s.open) return s;
-      const existing = s.lines.find((l) => l.itemId === item.id);
-      if (existing) {
-        return {
-          ...s,
-          lines: s.lines.map((l) =>
-            l.itemId === item.id ? { ...l, quantity: l.quantity + 1 } : l,
-          ),
-        };
+      if (!item.isPass) {
+        const existing = s.lines.find((l) => l.itemId === item.id && !l.holderName);
+        if (existing) {
+          return {
+            ...s,
+            lines: s.lines.map((l) =>
+              l === existing ? { ...l, quantity: l.quantity + 1 } : l,
+            ),
+          };
+        }
       }
-      // Snapshot name + price at add time, matching how checkouts are saved.
       return {
         ...s,
         lines: [
@@ -180,14 +190,14 @@ export function CheckoutsSection() {
     setDeleteState({ open: false });
   }
 
-  function setLineQuantity(itemId: string, qty: number) {
+  function setLineQuantity(index: number, qty: number) {
     if (!editState.open) return;
     setEditState((s) => {
       if (!s.open) return s;
       return {
         ...s,
-        lines: s.lines.map((l) =>
-          l.itemId === itemId ? { ...l, quantity: Math.max(0, qty) } : l,
+        lines: s.lines.map((l, i) =>
+          i === index ? { ...l, quantity: Math.max(0, qty) } : l,
         ),
       };
     });
@@ -263,9 +273,14 @@ export function CheckoutsSection() {
                 Lines (set quantity to 0 to remove)
               </p>
               <ul className="space-y-2">
-                {editState.lines.map((line) => (
-                  <li key={line.itemId} className="flex items-center gap-3">
-                    <span className="flex-1 truncate text-sm text-white/70">{line.name}</span>
+                {editState.lines.map((line, i) => (
+                  <li key={i} className="flex items-center gap-3">
+                    <span className="flex-1 truncate text-sm text-white/70">
+                      {line.name}
+                      {line.holderName && (
+                        <span className="ml-1.5 text-white/35">— {line.holderName}</span>
+                      )}
+                    </span>
                     {line.price > 0 && (
                       <span className="text-xs text-white/30 shrink-0">@ {formatPrice(line.price)}</span>
                     )}
@@ -276,7 +291,7 @@ export function CheckoutsSection() {
                         min={0}
                         step={1}
                         onChange={(e) =>
-                          setLineQuantity(line.itemId, parseInt(e.target.value, 10) || 0)
+                          setLineQuantity(i, parseInt(e.target.value, 10) || 0)
                         }
                       />
                     </div>

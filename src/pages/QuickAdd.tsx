@@ -2,72 +2,139 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { PageHeader } from '../components/PageHeader';
 import { Button } from '../components/ui/Button';
-import { useCategories, useItems, useCheckoutMutations } from '../lib/queries';
+import {
+  useCategories,
+  useItems,
+  useCheckoutMutations,
+  usePassHolderMutations,
+} from '../lib/queries';
 import { formatPrice } from '../lib/format';
-import type { CheckoutLine } from '../lib/types';
+import type { CheckoutLine, Item } from '../lib/types';
 import { ItemCard } from './quickadd/ItemCard';
+import { PassModal, type PassEntry } from './quickadd/PassModal';
 
 export function QuickAdd() {
   const { data: categories = [], isLoading: catsLoading } = useCategories();
   const { data: items = [], isLoading: itemsLoading } = useItems();
   const { create } = useCheckoutMutations();
+  const { create: createHolder } = usePassHolderMutations();
 
+  // Normal items: simple counts. Pass items: a list of per-person entries.
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [passEntries, setPassEntries] = useState<Record<string, PassEntry[]>>({});
+  const [passModalItem, setPassModalItem] = useState<Item | null>(null);
 
   const isLoading = catsLoading || itemsLoading;
 
   // Build category → items map (only categories that have items)
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
-  const itemsByCategory = new Map<string, typeof items>();
-
+  const itemsByCategory = new Map<string, Item[]>();
   for (const item of items) {
     if (!categoryMap.has(item.categoryId)) continue;
     const existing = itemsByCategory.get(item.categoryId) ?? [];
     existing.push(item);
     itemsByCategory.set(item.categoryId, existing);
   }
-
-  // Categories in order, filtered to those with items
   const activeCategories = categories.filter(
     (c) => (itemsByCategory.get(c.id)?.length ?? 0) > 0,
   );
 
-  // Running total
-  const runningTotal = items.reduce((sum, item) => {
-    const qty = counts[item.id] ?? 0;
-    return sum + item.price * qty;
-  }, 0);
-
-  // Total quantity across all items
-  const totalQty = Object.values(counts).reduce((s, v) => s + v, 0);
-
-  function increment(itemId: string) {
-    setCounts((prev) => ({ ...prev, [itemId]: (prev[itemId] ?? 0) + 1 }));
+  function entriesFor(itemId: string): PassEntry[] {
+    return passEntries[itemId] ?? [];
   }
 
-  function decrement(itemId: string) {
+  /** Count shown on the card: people for a pass item, tally for a normal one. */
+  function countFor(item: Item): number {
+    return item.isPass ? entriesFor(item.id).length : counts[item.id] ?? 0;
+  }
+
+  function passSubtotal(itemId: string): number {
+    return entriesFor(itemId).reduce((sum, e) => sum + e.price, 0);
+  }
+
+  // Running totals across normal counts + pass entries.
+  const runningTotal =
+    items.reduce((sum, item) => {
+      if (item.isPass) return sum + passSubtotal(item.id);
+      return sum + item.price * (counts[item.id] ?? 0);
+    }, 0);
+
+  const totalQty =
+    Object.values(counts).reduce((s, v) => s + v, 0) +
+    Object.values(passEntries).reduce((s, list) => s + list.length, 0);
+
+  function handleIncrement(item: Item) {
+    if (item.isPass) {
+      setPassModalItem(item);
+      return;
+    }
+    setCounts((prev) => ({ ...prev, [item.id]: (prev[item.id] ?? 0) + 1 }));
+  }
+
+  function handleDecrement(item: Item) {
+    if (item.isPass) {
+      setPassEntries((prev) => {
+        const list = prev[item.id] ?? [];
+        if (list.length === 0) return prev;
+        return { ...prev, [item.id]: list.slice(0, -1) };
+      });
+      return;
+    }
     setCounts((prev) => {
-      const current = prev[itemId] ?? 0;
+      const current = prev[item.id] ?? 0;
       if (current <= 0) return prev;
-      return { ...prev, [itemId]: current - 1 };
+      return { ...prev, [item.id]: current - 1 };
     });
   }
 
+  function handleAddPassEntry(entry: PassEntry) {
+    if (!passModalItem) return;
+    const id = passModalItem.id;
+    setPassEntries((prev) => ({ ...prev, [id]: [...(prev[id] ?? []), entry] }));
+  }
+
   async function handleSave() {
-    const lines: CheckoutLine[] = items
-      .filter((item) => (counts[item.id] ?? 0) > 0)
-      .map((item) => ({
-        itemId: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: counts[item.id] ?? 0,
-      }));
+    const lines: CheckoutLine[] = [];
+
+    // Normal item lines.
+    for (const item of items) {
+      if (item.isPass) continue;
+      const qty = counts[item.id] ?? 0;
+      if (qty > 0) {
+        lines.push({ itemId: item.id, name: item.name, price: item.price, quantity: qty });
+      }
+    }
+
+    // Pass entries: one line per person, plus register any new holders.
+    for (const item of items) {
+      if (!item.isPass) continue;
+      for (const entry of entriesFor(item.id)) {
+        if (entry.isNew) {
+          await createHolder.mutateAsync({
+            name: entry.name,
+            birthday: entry.birthday,
+            passItemId: item.id,
+          });
+        }
+        lines.push({
+          itemId: item.id,
+          name: item.name,
+          price: entry.price,
+          quantity: 1,
+          holderName: entry.name,
+          holderBirthday: entry.birthday,
+        });
+      }
+    }
 
     if (lines.length === 0) return;
 
     await create.mutateAsync({ total: runningTotal, lines });
     setCounts({});
+    setPassEntries({});
   }
+
+  const saving = create.isPending || createHolder.isPending;
 
   return (
     <div className="pb-28">
@@ -86,7 +153,7 @@ export function QuickAdd() {
         <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-10 text-center">
           <p className="font-display text-2xl text-white/70">No items yet</p>
           <p className="mx-auto mt-2 max-w-sm text-sm text-white/40">
-            Head over to <span className="text-white/60 font-medium">Settings</span> to
+            Head over to <span className="font-medium text-white/60">Settings</span> to
             add categories and items before counting.
           </p>
         </div>
@@ -98,7 +165,6 @@ export function QuickAdd() {
             const catItems = itemsByCategory.get(category.id) ?? [];
             return (
               <section key={category.id}>
-                {/* Category heading */}
                 <div className="mb-3 flex items-center gap-2">
                   <span className="text-xl leading-none">{category.icon}</span>
                   <h2 className="font-display text-lg font-bold tracking-tight text-white/90">
@@ -106,17 +172,28 @@ export function QuickAdd() {
                   </h2>
                 </div>
 
-                {/* Item grid */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {catItems.map((item) => (
-                    <ItemCard
-                      key={item.id}
-                      item={item}
-                      count={counts[item.id] ?? 0}
-                      onIncrement={() => increment(item.id)}
-                      onDecrement={() => decrement(item.id)}
-                    />
-                  ))}
+                  {catItems.map((item) => {
+                    const count = countFor(item);
+                    const priceText = item.isPass
+                      ? count > 0
+                        ? formatPrice(passSubtotal(item.id))
+                        : item.price > 0
+                          ? formatPrice(item.price)
+                          : null
+                      : undefined;
+                    return (
+                      <ItemCard
+                        key={item.id}
+                        item={item}
+                        count={count}
+                        badge={item.isPass ? 'Pass' : undefined}
+                        priceText={priceText}
+                        onIncrement={() => handleIncrement(item)}
+                        onDecrement={() => handleDecrement(item)}
+                      />
+                    );
+                  })}
                 </div>
               </section>
             );
@@ -126,12 +203,12 @@ export function QuickAdd() {
 
       {/* Sticky save bar */}
       <motion.div
-        className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-[#0b0b0f]/80 backdrop-blur-xl"
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-[#0b0b0f]/80 backdrop-blur-xl"
         initial={false}
       >
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <div className="flex flex-col">
-            <span className="text-xs font-medium text-white/40 uppercase tracking-wide">
+            <span className="text-xs font-medium uppercase tracking-wide text-white/40">
               Total
             </span>
             <motion.span
@@ -139,7 +216,7 @@ export function QuickAdd() {
               initial={{ scale: 0.9, opacity: 0.7 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-              className="font-display text-2xl font-extrabold text-lime-300 tabular-nums"
+              className="font-display text-2xl font-extrabold tabular-nums text-lime-300"
             >
               {formatPrice(runningTotal)}
             </motion.span>
@@ -147,11 +224,11 @@ export function QuickAdd() {
 
           <Button
             variant="primary"
-            disabled={totalQty === 0 || create.isPending}
+            disabled={totalQty === 0 || saving}
             onClick={() => void handleSave()}
             className="min-w-[100px] py-3 text-base"
           >
-            {create.isPending ? (
+            {saving ? (
               <span className="flex items-center gap-2">
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black" />
                 Saving…
@@ -162,6 +239,14 @@ export function QuickAdd() {
           </Button>
         </div>
       </motion.div>
+
+      {passModalItem && (
+        <PassModal
+          item={passModalItem}
+          onClose={() => setPassModalItem(null)}
+          onAdd={handleAddPassEntry}
+        />
+      )}
     </div>
   );
 }
