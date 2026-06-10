@@ -6,6 +6,8 @@ export interface Category {
   name: string;
   /** Emoji or short icon string shown next to the category. */
   icon: string;
+  /** Display order; lower numbers appear first. Multiples of 1000. */
+  order: number;
 }
 
 /** A countable thing with a price, belonging to a category. */
@@ -16,12 +18,23 @@ export interface Item {
   /** Unit price. `0` means "free / don't show price". */
   price: number;
   categoryId: string;
+  /** Display order; lower numbers appear first. Multiples of 1000. */
+  order: number;
   /**
    * When true this item is a "pass": adding it in Quick Add opens a search of
    * its pass holders. A known holder counts at price 0; an unknown person is
    * registered and counted at `price`. Absent/false for normal items.
    */
   isPass?: boolean;
+  /** When true, pass holders of this item can expire. Pass items only. */
+  canExpire?: boolean;
+  /**
+   * JS expression string evaluated to check if a holder is expired/over-limit.
+   * Receives `holder` (PassHolder) and `today` (Date). Returns `true` if invalid.
+   * Example: `holder.usageCount >= 10 || new Date(holder.startedAt) < new Date(today - 30 * 86400000)`
+   * Only meaningful when `canExpire` is true.
+   */
+  expiryExpression?: string;
 }
 
 /**
@@ -34,9 +47,13 @@ export interface PassHolder {
   name: string;
   /** `YYYY-MM-DD` (date-input value). */
   birthday: string;
+  /** `YYYY-MM-DD` — when the pass was activated. Defaults to registration date. */
+  startedAt: string;
   /** The pass item (`Item.id`, where `isPass`) this holder belongs to. */
   passItemId: string;
   createdAt: Timestamp;
+  /** Number of times this holder has been counted in a checkout. */
+  usageCount: number;
 }
 
 export type PassHolderInput = Omit<PassHolder, 'id' | 'createdAt'>;

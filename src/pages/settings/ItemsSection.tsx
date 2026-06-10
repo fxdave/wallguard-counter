@@ -1,5 +1,18 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -37,15 +50,72 @@ type ModalMode =
 
 type DeleteState = { open: false } | { open: true; item: Item };
 
+function SortableItemRow({
+  item,
+  catLabel,
+  onEdit,
+  onDelete,
+}: {
+  item: Item;
+  catLabel: string;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: item.id });
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      }}
+      className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.05] transition"
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="cursor-grab touch-none text-white/20 hover:text-white/60 transition select-none"
+        aria-label="Drag to reorder"
+      >
+        ⠿
+      </button>
+      <span className="text-2xl leading-none">{item.icon || '·'}</span>
+      <span className="flex-1 min-w-0">
+        <span className="flex items-center gap-2 text-sm font-medium">
+          <span className="truncate">{item.name}</span>
+          {item.isPass && (
+            <span className="shrink-0 rounded-md bg-lime-300/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-lime-300">
+              Pass
+            </span>
+          )}
+        </span>
+        <span className="block text-xs text-white/40 truncate">{catLabel}</span>
+      </span>
+      <Button variant="subtle" className="!px-2 !py-1 text-xs" onClick={onEdit}>
+        Edit
+      </Button>
+      <Button variant="danger" className="!px-2 !py-1 text-xs" onClick={onDelete}>
+        Delete
+      </Button>
+    </li>
+  );
+}
+
 export function ItemsSection() {
   const { data: items = [], isLoading: itemsLoading } = useItems();
   const { data: categories = [], isLoading: catsLoading } = useCategories();
-  const { create, update, remove } = useItemMutations();
+  const { create, update, remove, reorder } = useItemMutations();
 
   const [modal, setModal] = useState<ModalMode>({ type: 'closed' });
   const [form, setForm] = useState<ItemFormState>(emptyForm());
   const [errors, setErrors] = useState<Partial<Record<keyof ItemFormState, string>>>({});
   const [deleteState, setDeleteState] = useState<DeleteState>({ open: false });
+
+  const sensors = useSensors(useSensor(PointerSensor));
 
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
 
@@ -90,6 +160,9 @@ export function ItemsSection() {
       price: parseFloat(form.price) || 0,
       categoryId: form.categoryId,
       isPass: form.isPass,
+      order: modal.type === 'add'
+        ? (items[items.length - 1]?.order ?? 0) + 1000
+        : (modal.type === 'edit' ? modal.item.order : 1000),
     };
 
     if (modal.type === 'add') {
@@ -104,6 +177,21 @@ export function ItemsSection() {
     if (!deleteState.open) return;
     await remove.mutateAsync(deleteState.item.id);
     setDeleteState({ open: false });
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = items.findIndex((i) => i.id === active.id);
+    const newIndex = items.findIndex((i) => i.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = [...items];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+
+    reorder.mutate(reordered.map((i) => i.id));
   }
 
   const isSaving = create.isPending || update.isPending;
@@ -141,52 +229,28 @@ export function ItemsSection() {
           <p className="text-sm text-white/40">No items yet.</p>
         </div>
       ) : (
-        <ul className="space-y-1.5">
-          <AnimatePresence initial={false}>
-            {items.map((item) => {
-              const cat = categoryMap.get(item.categoryId);
-              return (
-                <motion.li
-                  key={item.id}
-                  layout
-                  initial={{ opacity: 0, y: -6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.97 }}
-                  transition={{ duration: 0.18 }}
-                  className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.05] transition"
-                >
-                  <span className="text-2xl leading-none">{item.icon || '·'}</span>
-                  <span className="flex-1 min-w-0">
-                    <span className="flex items-center gap-2 text-sm font-medium">
-                      <span className="truncate">{item.name}</span>
-                      {item.isPass && (
-                        <span className="shrink-0 rounded-md bg-lime-300/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-lime-300">
-                          Pass
-                        </span>
-                      )}
-                    </span>
-                    <span className="block text-xs text-white/40 truncate">
-                      {cat ? `${cat.icon || ''} ${cat.name}`.trim() : 'Unknown category'}
-                      {item.price > 0 && (
-                        <span className="ml-2 text-lime-300/70">{formatPrice(item.price)}</span>
-                      )}
-                    </span>
-                  </span>
-                  <Button variant="subtle" className="!px-2 !py-1 text-xs" onClick={() => openEdit(item)}>
-                    Edit
-                  </Button>
-                  <Button
-                    variant="danger"
-                    className="!px-2 !py-1 text-xs"
-                    onClick={() => setDeleteState({ open: true, item })}
-                  >
-                    Delete
-                  </Button>
-                </motion.li>
-              );
-            })}
-          </AnimatePresence>
-        </ul>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+            <ul className="space-y-1.5">
+              {items.map((item) => {
+                const cat = categoryMap.get(item.categoryId);
+                const catLabel = [
+                  cat ? `${cat.icon || ''} ${cat.name}`.trim() : 'Unknown category',
+                  item.price > 0 ? formatPrice(item.price) : '',
+                ].filter(Boolean).join(' · ');
+                return (
+                  <SortableItemRow
+                    key={item.id}
+                    item={item}
+                    catLabel={catLabel}
+                    onEdit={() => openEdit(item)}
+                    onDelete={() => setDeleteState({ open: true, item })}
+                  />
+                );
+              })}
+            </ul>
+          </SortableContext>
+        </DndContext>
       )}
 
       <Modal
