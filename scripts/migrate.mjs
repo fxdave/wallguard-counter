@@ -16,7 +16,7 @@
  *   node scripts/migrate.mjs
  */
 
-import admin from 'firebase-admin';
+import * as admin from 'firebase-admin';
 import { readdir } from 'fs/promises';
 import { join } from 'path';
 import { pathToFileURL } from 'url';

@@ -13,7 +13,7 @@
  *   node scripts/import-prod-db.mjs
  */
 
-import admin from 'firebase-admin';
+import * as admin from 'firebase-admin';
 import { initializeApp } from 'firebase/app';
 import {
   connectAuthEmulator,
