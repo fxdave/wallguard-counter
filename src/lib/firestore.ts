@@ -120,16 +120,6 @@ export async function reorderCategories(orderedIds: string[]): Promise<void> {
 
 // --------------------------------------------------------------- Pass holders
 
-/** List the holders of a given pass item, ordered by name. */
-export async function listPassHolders(passItemId: string): Promise<PassHolder[]> {
-  const snap = await getDocs(
-    query(passHoldersCol, where('passItemId', '==', passItemId), orderBy('name')),
-  );
-  return snap.docs.map((d) => ({
-    id: d.id,
-    ...(d.data() as Omit<PassHolder, 'id'>),
-  }));
-}
 
 export async function createPassHolder(input: PassHolderInput): Promise<string> {
   const ref = await addDoc(passHoldersCol, {
@@ -283,19 +273,12 @@ export async function listCheckoutsPage(
   return { checkouts, nextCursor };
 }
 
-/** Search pass holders by name prefix (case-insensitive via stored nameLower field, or client-side). */
-export async function searchPassHolders(
-  passItemId: string,
-  search: string,
-): Promise<PassHolder[]> {
+/** Fetch all pass holders for an item; sort and filter client-side to avoid composite index. */
+export async function fetchPassHolders(passItemId: string): Promise<PassHolder[]> {
   const snap = await getDocs(
-    query(passHoldersCol, where('passItemId', '==', passItemId), orderBy('name')),
+    query(passHoldersCol, where('passItemId', '==', passItemId)),
   );
-  const all = snap.docs.map((d) => ({
-    id: d.id,
-    ...(d.data() as Omit<PassHolder, 'id'>),
-  }));
-  if (!search.trim()) return all.slice(0, 50);
-  const lower = search.trim().toLowerCase();
-  return all.filter((h) => h.name.toLowerCase().includes(lower)).slice(0, 50);
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as Omit<PassHolder, 'id'>) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }

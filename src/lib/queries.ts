@@ -22,8 +22,7 @@ import {
   listCheckoutsPage,
   listItems,
   listMembers,
-  listPassHolders,
-  searchPassHolders,
+  fetchPassHolders,
   reorderCategories,
   reorderItems,
   removeMember,
@@ -114,17 +113,8 @@ export function useCategoryMutations() {
 export function usePassHolders(passItemId: string | null) {
   return useQuery({
     queryKey: queryKeys.passHolders(passItemId ?? ''),
-    queryFn: () => listPassHolders(passItemId as string),
+    queryFn: () => fetchPassHolders(passItemId as string),
     enabled: !!passItemId,
-  });
-}
-
-export function usePassHolderSearch(passItemId: string, search: string) {
-  return useQuery({
-    queryKey: ['passHolders', passItemId, 'search', search],
-    queryFn: () => searchPassHolders(passItemId, search),
-    enabled: !!passItemId,
-    staleTime: 30_000,
   });
 }
 

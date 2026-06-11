@@ -25,7 +25,7 @@ import {
   CheckboxField,
 } from '../../components/ui/Field';
 import { DateField } from '../../components/ui/DateField';
-import { useItems, useItemMutations, useCategories, usePassHolderSearch, usePassHolderMutations } from '../../lib/queries';
+import { useItems, useItemMutations, useCategories, usePassHolders, usePassHolderMutations } from '../../lib/queries';
 import { countPassHolders } from '../../lib/firestore';
 import { formatPrice } from '../../lib/format';
 import type { Item, PassHolder } from '../../lib/types';
@@ -59,7 +59,10 @@ type DeleteState = { open: false } | { open: true; item: Item };
 
 function PassHoldersSection({ passItemId }: { passItemId: string }) {
   const [search, setSearch] = useState('');
-  const { data: holders = [], isLoading } = usePassHolderSearch(passItemId, search);
+  const { data: allHolders = [], isLoading } = usePassHolders(passItemId);
+  const holders = search.trim()
+    ? allHolders.filter((h) => h.name.toLowerCase().includes(search.trim().toLowerCase())).slice(0, 50)
+    : allHolders.slice(0, 50);
   const { create, update, remove } = usePassHolderMutations(passItemId);
 
   const today = new Date().toISOString().slice(0, 10);
