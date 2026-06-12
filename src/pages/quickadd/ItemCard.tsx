@@ -55,6 +55,18 @@ export function ItemCard({
           : 'border border-white/10 bg-white/[0.03] text-white/80',
       ].join(' ')}
     >
+      {/* Floating badge (e.g. "PASS") */}
+      {badge && (
+        <span
+          className={[
+            'pointer-events-none absolute right-2 top-1.5 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide',
+            active ? 'bg-black/15 text-black/70' : 'bg-lime-300/15 text-lime-300',
+          ].join(' ')}
+        >
+          {badge}
+        </span>
+      )}
+
       {/* Minus button */}
       <motion.button
         aria-label={`Decrease ${item.name}`}
@@ -104,16 +116,6 @@ export function ItemCard({
           >
             {item.name}
           </span>
-          {badge && (
-            <span
-              className={[
-                'shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide',
-                active ? 'bg-black/15 text-black/70' : 'bg-lime-300/15 text-lime-300',
-              ].join(' ')}
-            >
-              {badge}
-            </span>
-          )}
         </div>
 
         {/* Price / subtotal */}
