@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { PageHeader } from '../components/PageHeader';
 import { Button } from '../components/ui/Button';
 import {
   useCategories,
@@ -144,11 +143,6 @@ export function QuickAdd() {
 
   return (
     <div className="pb-28">
-      <PageHeader
-        title="Quick Add"
-        subtitle="Tap to count. Save writes one checkout batch."
-      />
-
       {isLoading && (
         <div className="flex items-center justify-center py-20">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-lime-300/30 border-t-lime-300" />
@@ -204,6 +198,10 @@ export function QuickAdd() {
               </section>
             );
           })}
+
+          <p className="pt-2 text-center text-xs text-white/30">
+            Tap to count. Save writes one checkout batch.
+          </p>
         </div>
       )}
 
