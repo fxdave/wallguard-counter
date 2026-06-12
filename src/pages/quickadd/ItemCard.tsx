@@ -49,7 +49,7 @@ export function ItemCard({
   return (
     <div
       className={[
-        'relative flex items-center gap-3 rounded-2xl px-4 py-4 transition-all duration-200',
+        'relative flex items-center gap-2.5 rounded-2xl px-3 py-2 transition-all duration-200',
         active
           ? 'border border-lime-300/40 bg-lime-300 text-black shadow-[0_0_20px_rgba(190,242,100,0.25)]'
           : 'border border-white/10 bg-white/[0.03] text-white/80',
@@ -75,7 +75,7 @@ export function ItemCard({
       {/* Center content */}
       <div className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
         {/* Animated count */}
-        <div className="relative h-9 w-full overflow-hidden flex items-center justify-center">
+        <div className="relative h-7 w-full overflow-hidden flex items-center justify-center">
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.span
               key={count}
@@ -94,11 +94,11 @@ export function ItemCard({
         </div>
 
         {/* Item icon + name */}
-        <div className="flex items-center gap-1.5 min-w-0 max-w-full">
+        <div className="flex items-center justify-center gap-1.5 min-w-0 max-w-full">
           <span className="text-base leading-none shrink-0">{item.icon}</span>
           <span
             className={[
-              'truncate text-sm font-semibold',
+              'min-w-0 break-words text-center text-sm font-semibold leading-tight',
               active ? 'text-black' : 'text-white/70',
             ].join(' ')}
           >

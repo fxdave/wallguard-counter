@@ -66,7 +66,7 @@ function PassHoldersSection({ passItemId }: { passItemId: string }) {
   const { create, update, remove } = usePassHolderMutations(passItemId);
 
   const today = new Date().toISOString().slice(0, 10);
-  const [addForm, setAddForm] = useState({ name: '', birthday: '', startedAt: today });
+  const [addForm, setAddForm] = useState({ name: '', birthday: '', startedAt: today, usageCount: '0' });
   const [addError, setAddError] = useState('');
   const [editHolder, setEditHolder] = useState<PassHolder | null>(null);
   const [editForm, setEditForm] = useState({ name: '', birthday: '', startedAt: '' });
@@ -76,14 +76,15 @@ function PassHoldersSection({ passItemId }: { passItemId: string }) {
       setAddError('Name, birthday, and started date are required.');
       return;
     }
+    const usageCount = Math.max(0, Math.trunc(Number(addForm.usageCount) || 0));
     await create.mutateAsync({
       name: addForm.name.trim(),
       birthday: addForm.birthday,
       startedAt: addForm.startedAt,
       passItemId,
-      usageCount: 0,
+      usageCount,
     });
-    setAddForm({ name: '', birthday: '', startedAt: today });
+    setAddForm({ name: '', birthday: '', startedAt: today, usageCount: '0' });
     setAddError('');
   }
 
@@ -182,6 +183,15 @@ function PassHoldersSection({ passItemId }: { passItemId: string }) {
             </div>
             <div className="flex-1">
               <DateField label="Started at" value={addForm.startedAt} onChange={(v) => setAddForm((f) => ({ ...f, startedAt: v }))} />
+            </div>
+            <div className="w-24 shrink-0">
+              <NumberField
+                label="Uses"
+                min={0}
+                step={1}
+                value={addForm.usageCount}
+                onChange={(e) => setAddForm((f) => ({ ...f, usageCount: e.target.value }))}
+              />
             </div>
           </div>
           {addError && <p className="text-xs text-red-400">{addError}</p>}

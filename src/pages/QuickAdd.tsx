@@ -115,7 +115,8 @@ export function QuickAdd() {
             birthday: entry.birthday,
             startedAt: new Date().toISOString().slice(0, 10),
             passItemId: item.id,
-            usageCount: 0,
+            // Registering + adding in Quick Add counts as the holder's first use.
+            usageCount: 1,
           });
         } else if (entry.holderId) {
           // Atomically increment usage count for existing holders.
@@ -165,19 +166,19 @@ export function QuickAdd() {
       )}
 
       {!isLoading && items.length > 0 && (
-        <div className="space-y-8">
+        <div className="space-y-5">
           {activeCategories.map((category) => {
             const catItems = itemsByCategory.get(category.id) ?? [];
             return (
               <section key={category.id}>
-                <div className="mb-3 flex items-center gap-2">
+                <div className="mb-2 flex items-center gap-2">
                   <span className="text-xl leading-none">{category.icon}</span>
                   <h2 className="font-display text-lg font-bold tracking-tight text-white/90">
                     {category.name}
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {catItems.map((item) => {
                     const count = countFor(item);
                     const priceText = item.isPass
