@@ -103,7 +103,16 @@ export function ItemCard({
 
         {/* Item icon + name */}
         <div className="flex items-center justify-center gap-1.5 min-w-0 max-w-full">
-          {item.icon && <span className="text-base leading-none shrink-0">{item.icon}</span>}
+          {item.icon && (
+            <span
+              className={[
+                'text-base leading-none shrink-0',
+                active ? 'text-black' : 'text-white/70',
+              ].join(' ')}
+            >
+              {item.icon}
+            </span>
+          )}
           <span
             className={[
               'min-w-0 break-words text-center text-sm font-semibold leading-tight',

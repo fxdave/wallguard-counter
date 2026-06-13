@@ -24,18 +24,26 @@ export function setTheme(theme: Theme): void {
   applyTheme(theme);
 }
 
-/** Cycle order for the header toggle. */
-const ORDER: Theme[] = ['system', 'light', 'dark'];
-
-export function nextTheme(theme: Theme): Theme {
-  return ORDER[(ORDER.indexOf(theme) + 1) % ORDER.length];
+/** The actually-rendered theme: resolves 'system' against the OS preference. */
+export function resolveTheme(theme: Theme): 'light' | 'dark' {
+  if (theme !== 'system') return theme;
+  const dark =
+    typeof matchMedia !== 'undefined' &&
+    matchMedia('(prefers-color-scheme: dark)').matches;
+  return dark ? 'dark' : 'light';
 }
 
-export function useTheme(): readonly [Theme, (t: Theme) => void] {
+/**
+ * Header toggle: exposes the effective light/dark mode and a flip to the
+ * opposite. Defaults to following the OS until the user flips it once.
+ */
+export function useTheme(): readonly ['light' | 'dark', () => void] {
   const [theme, set] = useState<Theme>(getStoredTheme);
-  const update = (t: Theme) => {
-    setTheme(t);
-    set(t);
+  const effective = resolveTheme(theme);
+  const toggle = () => {
+    const next: Theme = effective === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    set(next);
   };
-  return [theme, update] as const;
+  return [effective, toggle] as const;
 }
