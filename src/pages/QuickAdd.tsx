@@ -165,8 +165,8 @@ export function QuickAdd() {
             const catItems = itemsByCategory.get(category.id) ?? [];
             return (
               <section key={category.id} className="flex items-stretch gap-3">
-                <div className="flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.02] px-1 py-2 [writing-mode:vertical-rl] rotate-180">
-                  <span className="text-xl leading-none">{category.icon}</span>
+                <div className="flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-1 [writing-mode:vertical-rl] rotate-180">
+                  <span className="text-xl leading-none rotate-180">{category.icon}</span>
                   <h2 className="font-display text-lg font-bold tracking-tight text-white/90">
                     {category.name}
                   </h2>
@@ -178,9 +178,7 @@ export function QuickAdd() {
                     const priceText = item.isPass
                       ? count > 0
                         ? formatPrice(passSubtotal(item.id))
-                        : item.price > 0
-                          ? formatPrice(item.price)
-                          : null
+                        : formatPrice(item.price)
                       : undefined;
                     return (
                       <ItemCard

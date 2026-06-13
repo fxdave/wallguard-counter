@@ -14,13 +14,14 @@ export function Layout() {
   return (
     <div className="flex min-h-dvh flex-col bg-[#0b0b0f] text-white">
       <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0b0b0f]/80 backdrop-blur-md">
-        <div className="mx-auto max-w-5xl px-4">
-          {/* Top row: logo + sign out */}
-          <div className="flex items-center justify-between py-3">
-            <span className="font-display text-lg font-extrabold tracking-tight">
-              <span className="text-lime-300">▮</span> Counter
-            </span>
-            <div className="flex items-center gap-2">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-4 px-4 py-3">
+          {/* Logo */}
+          <span className="order-1 font-display text-lg font-extrabold tracking-tight">
+            <span className="text-lime-300">▮</span> Counter
+          </span>
+
+          {/* Actions: top-right on mobile, far right on desktop */}
+          <div className="order-2 ml-auto flex items-center gap-2 md:order-3">
               <a
                 href="https://github.com/fxdave/wallguard-counter"
                 target="_blank"
@@ -40,10 +41,10 @@ export function Layout() {
               >
                 Sign out
               </button>
-            </div>
           </div>
-          {/* Nav row */}
-          <nav className="flex gap-1 overflow-x-auto pb-2 scrollbar-none">
+
+          {/* Nav: own row on mobile (wraps), inline between logo and actions on desktop */}
+          <nav className="order-3 flex w-full gap-1 overflow-x-auto pt-2 scrollbar-none md:order-2 md:w-auto md:flex-1 md:pt-0">
             {NAV.map((item) => (
               <NavLink
                 key={item.to}

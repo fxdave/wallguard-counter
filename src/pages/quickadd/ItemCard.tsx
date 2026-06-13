@@ -26,11 +26,7 @@ export function ItemCard({
   priceText,
 }: ItemCardProps) {
   const priceDisplay =
-    priceText !== undefined
-      ? priceText
-      : item.price !== 0
-        ? formatPrice(item.price)
-        : null;
+    priceText !== undefined ? priceText : formatPrice(item.price);
   const active = count > 0;
   // Track direction for count animation
   const [direction, setDirection] = useState<1 | -1>(1);
