@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
+import { ThemeToggle } from './ThemeToggle';
 
 const NAV = [
   { to: '/', label: 'Quick Add', end: true },
@@ -12,8 +13,8 @@ export function Layout() {
   const { user, logOut } = useAuth();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#0b0b0f] text-white">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0b0b0f]/80 backdrop-blur-md">
+    <div className="flex min-h-dvh flex-col bg-base text-white">
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-base/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-4 px-4 py-3">
           {/* Logo */}
           <span className="order-1 font-display text-lg font-extrabold tracking-tight">
@@ -22,6 +23,7 @@ export function Layout() {
 
           {/* Actions: top-right on mobile, far right on desktop */}
           <div className="order-2 ml-auto flex items-center gap-2 md:order-3">
+              <ThemeToggle />
               <a
                 href="https://github.com/fxdave/wallguard-counter"
                 target="_blank"

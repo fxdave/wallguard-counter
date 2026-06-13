@@ -205,7 +205,7 @@ export function QuickAdd() {
 
       {/* Sticky save bar */}
       <motion.div
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-[#0b0b0f]/80 backdrop-blur-xl"
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-base/80 backdrop-blur-xl"
         initial={false}
       >
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-3 sm:px-6">

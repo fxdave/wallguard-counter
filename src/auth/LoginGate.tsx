@@ -12,7 +12,7 @@ export function LoginGate({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="grid min-h-dvh place-items-center bg-[#0b0b0f]">
+      <div className="grid min-h-dvh place-items-center bg-base">
         <motion.div
           aria-label="Loading"
           className="size-10 rounded-full border-2 border-white/10 border-t-lime-300"
@@ -60,7 +60,7 @@ export function LoginGate({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="relative grid min-h-dvh place-items-center overflow-hidden bg-[#0b0b0f] px-6">
+    <div className="relative grid min-h-dvh place-items-center overflow-hidden bg-base px-6">
       {/* Atmospheric backdrop */}
       <div className="pointer-events-none absolute inset-0 opacity-70">
         <div className="absolute -left-40 -top-40 size-[28rem] rounded-full bg-lime-500/20 blur-[120px]" />
@@ -102,14 +102,14 @@ export function LoginGate({ children }: { children: ReactNode }) {
                   value={email}
                   autoFocus
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-lime-300/60 focus:ring-2 focus:ring-lime-300/20"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-lime-300/60 focus:ring-2 focus:ring-lime-300/20"
                 />
                 <input
                   type="password"
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-lime-300/60 focus:ring-2 focus:ring-lime-300/20"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/30 outline-none transition focus:border-lime-300/60 focus:ring-2 focus:ring-lime-300/20"
                 />
                 <div className="flex gap-2 pt-1">
                   <button
@@ -149,7 +149,7 @@ export function LoginGate({ children }: { children: ReactNode }) {
             type="button"
             onClick={() => void handleGoogleSignIn()}
             disabled={busy}
-            className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3 font-medium text-black transition hover:bg-lime-200 disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-black/10 bg-[#fff] px-4 py-3 font-medium text-black transition hover:bg-lime-200 disabled:opacity-60"
           >
             <GoogleMark />
             {busy ? 'Signing in…' : 'Continue with Google'}

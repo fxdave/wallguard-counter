@@ -117,7 +117,7 @@ function PassHoldersSection({ passItemId }: { passItemId: string }) {
       </p>
 
       <input
-        className="mb-3 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-lime-300/60"
+        className="mb-3 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-lime-300/60"
         placeholder="Search by name…"
         value={search}
         onChange={(e) => { setSearch(e.target.value); setEditHolder(null); }}
@@ -131,7 +131,7 @@ function PassHoldersSection({ passItemId }: { passItemId: string }) {
         <div className="mb-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
           <p className="text-xs font-medium text-white/50">Editing {editHolder.name}</p>
           <input
-            className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-lime-300/60"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-lime-300/60"
             placeholder="Name"
             value={editForm.name}
             onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
@@ -172,7 +172,7 @@ function PassHoldersSection({ passItemId }: { passItemId: string }) {
         <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
           <p className="text-xs text-white/40">Add holder</p>
           <input
-            className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-lime-300/60"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-lime-300/60"
             placeholder="Name"
             value={addForm.name}
             onChange={(e) => { setAddForm((f) => ({ ...f, name: e.target.value })); setAddError(''); }}
@@ -492,7 +492,7 @@ export function ItemsSection() {
                       Expiry expression
                     </span>
                     <textarea
-                      className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs font-mono text-white placeholder:text-white/30 outline-none transition focus:border-lime-300/60 focus:ring-2 focus:ring-lime-300/20 resize-none"
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-mono text-white placeholder:text-white/30 outline-none transition focus:border-lime-300/60 focus:ring-2 focus:ring-lime-300/20 resize-none"
                       rows={3}
                       placeholder={'holder.usageCount >= 10 || new Date(holder.startedAt) < new Date(today - 30 * 86400000)'}
                       value={form.expiryExpression}

@@ -47,7 +47,7 @@ export function ItemCard({
       className={[
         'relative flex items-center gap-2.5 rounded-2xl px-3 py-2 transition-all duration-200',
         active
-          ? 'border border-lime-300/40 bg-lime-300 text-black shadow-[0_0_20px_rgba(190,242,100,0.25)]'
+          ? 'border border-lime-300/40 bg-lime-300 text-black shadow-[0_0_20px_rgb(var(--accent)/0.25)]'
           : 'border border-white/10 bg-white/[0.03] text-white/80',
       ].join(' ')}
     >

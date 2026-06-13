@@ -40,7 +40,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className="relative flex w-full max-w-md flex-col rounded-3xl border border-white/10 bg-[#141419] shadow-2xl shadow-black/50"
+            className="relative flex w-full max-w-md flex-col rounded-3xl border border-white/10 bg-elevated shadow-2xl shadow-black/50"
             style={{ maxHeight: 'min(90dvh, 900px)' }}
             initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

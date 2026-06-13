@@ -283,7 +283,7 @@ export function CheckoutsSection() {
                   onChange={(e) =>
                     setEditState((s) => s.open ? { ...s, date: e.target.value } : s)
                   }
-                  className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none transition focus:border-lime-300/60 focus:ring-2 focus:ring-lime-300/20"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition focus:border-lime-300/60 focus:ring-2 focus:ring-lime-300/20"
                 />
               </label>
             </div>

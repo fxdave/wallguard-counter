@@ -44,7 +44,7 @@ export function MonthTable({
           <tr className="border-b border-white/8">
             {/* top-left corner — sticky */}
             <th
-              className="sticky left-0 z-20 border-r border-white/8 bg-[#0d0d12] px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-widest text-white/30"
+              className="sticky left-0 z-20 border-r border-white/8 bg-panel px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-widest text-white/30"
               scope="col"
             >
               Item
@@ -165,7 +165,7 @@ function CategorySection({
       {/* Item rows */}
       {items.length === 0 ? (
         <tr>
-          <td className="sticky left-0 z-10 border-r border-white/5 bg-[#0d0d12] px-4 py-2 text-white/20 italic">
+          <td className="sticky left-0 z-10 border-r border-white/5 bg-panel px-4 py-2 text-white/20 italic">
             No items
           </td>
           {days.map((d) => (
@@ -209,7 +209,7 @@ function ItemRow({ item, days, dayTotals, todayKey, isWeekend, dayKey }: ItemRow
   return (
     <tr className="group transition-colors hover:bg-white/[0.015]">
       {/* Sticky item label */}
-      <td className="sticky left-0 z-10 border-r border-white/5 bg-[#0d0d12] px-4 py-1.5 group-hover:bg-[#0f0f14]">
+      <td className="sticky left-0 z-10 border-r border-white/5 bg-panel px-4 py-1.5 group-hover:bg-panel-hover">
         <div className="flex items-center gap-1.5 leading-none">
           <span className="text-[13px] leading-none opacity-80">{item.icon}</span>
           <span className="truncate text-[11px] font-medium text-white/70">{item.name}</span>

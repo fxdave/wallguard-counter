@@ -14,6 +14,17 @@
     <title>Wallguard Counter</title>
   </head>
   <body>
+    <script>
+      // Apply the saved theme before paint to avoid a flash. 'system' (or
+      // no value) leaves it to the prefers-color-scheme media query.
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          if (t === 'light' || t === 'dark')
+            document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

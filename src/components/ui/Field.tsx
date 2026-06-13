@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
 
 const inputClass =
-  'w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white ' +
+  'w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white ' +
   'placeholder:text-white/30 outline-none transition focus:border-lime-300/60 focus:ring-2 focus:ring-lime-300/20';
 
 function Label({ label, children }: { label: string; children: ReactNode }) {
@@ -43,7 +43,7 @@ export function IconField({
   return (
     <Label label={label}>
       <div className="flex items-center gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-white/10 bg-black/30 text-2xl">
+        <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/5 text-2xl">
           {value || '·'}
         </span>
         <input
@@ -87,7 +87,7 @@ export function CheckboxField({
   onChange: (next: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 transition hover:bg-black/30">
+    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 transition hover:bg-white/5">
       <input
         type="checkbox"
         checked={checked}

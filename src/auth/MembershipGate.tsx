@@ -36,7 +36,7 @@ export function MembershipGate({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={() => void refetch()}
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-lime-200"
+            className="rounded-xl border border-black/10 bg-[#fff] px-4 py-2 text-sm font-semibold text-black transition hover:bg-lime-200"
           >
             Retry
           </button>
@@ -69,7 +69,7 @@ export function MembershipGate({ children }: { children: ReactNode }) {
 
 function Centered({ children }: { children: ReactNode }) {
   return (
-    <div className="grid min-h-dvh place-items-center bg-[#0b0b0f] px-6">
+    <div className="grid min-h-dvh place-items-center bg-base px-6">
       {children}
     </div>
   );

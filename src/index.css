@@ -3,6 +3,18 @@
 @theme {
   --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
   --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+
+  /* Semantic design tokens — values flip with the theme (see :root below).
+     `white` is remapped to the foreground "ink" so the hundreds of existing
+     white/α utilities (text/border/surface) theme automatically. */
+  --color-white: rgb(var(--ink));
+  --color-base: rgb(var(--base));
+  --color-elevated: rgb(var(--elevated));
+  --color-panel: rgb(var(--panel));
+  --color-panel-hover: rgb(var(--panel-hover));
+  /* Brand accent. Bright lime in dark; a deep lime-green in light so the
+     thin accent uses (text, borders, rings) stay legible over a pale page. */
+  --color-lime-300: rgb(var(--accent));
 }
 
 @utility scrollbar-none {
@@ -13,8 +25,39 @@
 }
 
 @layer base {
+  /* Dark is the default. Tokens are RGB channel triplets so utilities can
+     apply alpha (e.g. text-white/40). The page follows the OS preference
+     unless the user has explicitly chosen a theme via [data-theme]. */
   :root {
+    --ink: 245 245 247;
+    --base: 11 11 15;
+    --elevated: 20 20 25;
+    --panel: 13 13 18;
+    --panel-hover: 15 15 20;
+    --accent: 190 242 100;
     color-scheme: dark;
+  }
+
+  :root[data-theme='light'] {
+    --ink: 24 24 27;
+    --base: 240 240 244;
+    --elevated: 255 255 255;
+    --panel: 248 248 251;
+    --panel-hover: 238 238 243;
+    --accent: 77 124 15;
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme='dark']) {
+      --ink: 24 24 27;
+      --base: 240 240 244;
+      --elevated: 255 255 255;
+      --panel: 248 248 251;
+      --panel-hover: 238 238 243;
+      --accent: 77 124 15;
+      color-scheme: light;
+    }
   }
 
   html,
@@ -26,8 +69,8 @@
   body {
     margin: 0;
     font-family: var(--font-sans);
-    background-color: #0b0b0f;
-    color: #f5f5f7;
+    background-color: rgb(var(--base));
+    color: rgb(var(--ink));
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
