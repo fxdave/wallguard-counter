@@ -59,11 +59,25 @@ export interface PassHolder {
 export type PassHolderInput = Omit<PassHolder, 'id' | 'createdAt'>;
 
 /**
+ * A named percentage discount, e.g. "Internal staff" at 50%. Toggled on/off in
+ * Quick Add; multiple may be active and stack multiplicatively in `order`.
+ */
+export interface Discount {
+  id: string;
+  name: string;
+  /** Percent off, 0–100 (e.g. `50` means 50% off). */
+  percent: number;
+  /** Display + application order; lower numbers apply first. Multiples of 1000. */
+  order: number;
+}
+
+/**
  * One line within a checkout. `name` and `price` are SNAPSHOTTED at save time
  * so historical checkouts and exports stay correct even if the item is later
  * renamed, repriced, or hard-deleted. Never re-resolve these from the live item.
  */
 export interface CheckoutLine {
+  /** Item id, pass item id, or discount id depending on the line kind. */
   itemId: string;
   name: string;
   price: number;
@@ -72,6 +86,11 @@ export interface CheckoutLine {
   holderName?: string;
   /** For pass entries: the person's birthday (`YYYY-MM-DD`), snapshotted. */
   holderBirthday?: string;
+  /**
+   * Present only on discount lines: the discount percent applied (snapshotted).
+   * Discount lines carry a NEGATIVE `price` (the reduction amount) and quantity 1.
+   */
+  percent?: number;
 }
 
 /** A batch counting session saved from the Quick Add page. */
@@ -100,3 +119,4 @@ export interface Member {
 export type CategoryInput = Omit<Category, 'id'>;
 export type ItemInput = Omit<Item, 'id'>;
 export type CheckoutInput = Omit<Checkout, 'id'>;
+export type DiscountInput = Omit<Discount, 'id'>;

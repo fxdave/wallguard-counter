@@ -4,17 +4,21 @@ import { Button } from '../components/ui/Button';
 import {
   useCategories,
   useItems,
+  useDiscounts,
   useCheckoutMutations,
   usePassHolderMutations,
 } from '../lib/queries';
 import { formatPrice } from '../lib/format';
+import { computeDiscountLines } from '../lib/discounts';
 import type { CheckoutLine, Item } from '../lib/types';
 import { ItemCard } from './quickadd/ItemCard';
+import { DiscountChip } from './quickadd/DiscountChip';
 import { PassModal, type PassEntry } from './quickadd/PassModal';
 
 export function QuickAdd() {
   const { data: categories = [], isLoading: catsLoading } = useCategories();
   const { data: items = [], isLoading: itemsLoading } = useItems();
+  const { data: discounts = [] } = useDiscounts();
   const { create } = useCheckoutMutations();
   const { create: createHolder, incrementUsage } = usePassHolderMutations();
 
@@ -22,6 +26,8 @@ export function QuickAdd() {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [passEntries, setPassEntries] = useState<Record<string, PassEntry[]>>({});
   const [passModalItem, setPassModalItem] = useState<Item | null>(null);
+  // Ids of the discounts currently toggled on.
+  const [activeDiscounts, setActiveDiscounts] = useState<Set<string>>(new Set());
 
   const isLoading = catsLoading || itemsLoading;
 
@@ -51,12 +57,20 @@ export function QuickAdd() {
     return entriesFor(itemId).reduce((sum, e) => sum + e.price, 0);
   }
 
-  // Running totals across normal counts + pass entries.
-  const runningTotal =
+  // Positive subtotal across normal counts + pass entries (before discounts).
+  const positiveSubtotal =
     items.reduce((sum, item) => {
       if (item.isPass) return sum + passSubtotal(item.id);
       return sum + item.price * (counts[item.id] ?? 0);
     }, 0);
+
+  // Discount lines for the currently toggled discounts (multiplicative in order).
+  const activeDiscountList = discounts.filter((d) => activeDiscounts.has(d.id));
+  const discountLines = computeDiscountLines(positiveSubtotal, activeDiscountList);
+
+  // Running total shown in the save bar = subtotal + (negative) discount lines.
+  const runningTotal =
+    positiveSubtotal + discountLines.reduce((sum, l) => sum + l.price, 0);
 
   const totalQty =
     Object.values(counts).reduce((s, v) => s + v, 0) +
@@ -83,6 +97,15 @@ export function QuickAdd() {
       const current = prev[item.id] ?? 0;
       if (current <= 0) return prev;
       return { ...prev, [item.id]: current - 1 };
+    });
+  }
+
+  function toggleDiscount(id: string) {
+    setActiveDiscounts((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
   }
 
@@ -134,9 +157,13 @@ export function QuickAdd() {
 
     if (lines.length === 0) return;
 
+    // Discounts apply to the positive subtotal; append them as negative lines.
+    lines.push(...discountLines);
+
     await create.mutateAsync({ total: runningTotal, lines });
     setCounts({});
     setPassEntries({});
+    setActiveDiscounts(new Set());
   }
 
   const saving = create.isPending || createHolder.isPending;
@@ -196,6 +223,24 @@ export function QuickAdd() {
               </section>
             );
           })}
+
+          {discounts.length > 0 && (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3">
+              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/40">
+                Discounts
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {discounts.map((discount) => (
+                  <DiscountChip
+                    key={discount.id}
+                    discount={discount}
+                    active={activeDiscounts.has(discount.id)}
+                    onToggle={() => toggleDiscount(discount.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           <p className="pt-2 text-center text-xs text-white/30">
             Tap to count. Save writes one checkout batch.

@@ -3,7 +3,9 @@ import { PageHeader } from '../components/PageHeader';
 import { Button } from '../components/ui/Button';
 import { useCategories } from '../lib/queries';
 import { useItems } from '../lib/queries';
+import { useDiscounts } from '../lib/queries';
 import { useCheckouts } from '../lib/queries';
+import type { Category, Item } from '../lib/types';
 import {
   startOfMonth,
   startOfNextMonth,
@@ -23,9 +25,35 @@ export function Overview() {
 
   const { data: categories = [], isLoading: catsLoading } = useCategories();
   const { data: items = [] } = useItems();
+  const { data: discounts = [] } = useDiscounts();
   const { data: checkouts = [], isLoading: checkoutsLoading } = useCheckouts({ from, to });
 
   const days = useMemo(() => daysInMonth(month), [month]);
+
+  // Discounts render as a synthetic "Discounts" category group at the bottom,
+  // reusing the item-row rendering. Each discount line's `itemId` is its id, so
+  // the totals map already counts applications per day.
+  const DISCOUNTS_CATEGORY_ID = '__discounts__';
+  const rowCategories = useMemo<Category[]>(() => {
+    if (discounts.length === 0) return categories;
+    return [
+      ...categories,
+      { id: DISCOUNTS_CATEGORY_ID, name: 'Discounts', icon: '💸', order: Infinity },
+    ];
+  }, [categories, discounts.length]);
+
+  const rowItems = useMemo<Item[]>(() => {
+    if (discounts.length === 0) return items;
+    const discountRows: Item[] = discounts.map((d) => ({
+      id: d.id,
+      name: `${d.name} (${d.percent}%)`,
+      icon: '💸',
+      price: 0,
+      categoryId: DISCOUNTS_CATEGORY_ID,
+      order: d.order,
+    }));
+    return [...items, ...discountRows];
+  }, [items, discounts]);
 
   /** itemId -> dayKey -> total quantity */
   const totals = useMemo(() => {
@@ -78,8 +106,8 @@ export function Overview() {
         </div>
       ) : (
         <MonthTable
-          categories={categories}
-          items={items}
+          categories={rowCategories}
+          items={rowItems}
           days={days}
           totals={totals}
           todayKey={todayKey}

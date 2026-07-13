@@ -9,10 +9,12 @@ import {
   checkAccess,
   createCategory,
   createCheckout,
+  createDiscount,
   createItem,
   createPassHolder,
   deleteCategory,
   deleteCheckout,
+  deleteDiscount,
   deleteItem,
   deletePassHolder,
   countPassHolders,
@@ -20,25 +22,29 @@ import {
   listCategories,
   listCheckouts,
   listCheckoutsPage,
+  listDiscounts,
   listItems,
   listMembers,
   fetchPassHolders,
   reorderCategories,
+  reorderDiscounts,
   reorderItems,
   removeMember,
   updateCategory,
   updateCheckout,
+  updateDiscount,
   updateItem,
   updatePassHolder,
   type CheckoutsPage,
 } from './firestore';
 import type { QueryDocumentSnapshot } from 'firebase/firestore';
-import type { CategoryInput, ItemInput } from './types';
+import type { CategoryInput, DiscountInput, ItemInput } from './types';
 
 /** Centralized query keys so cache invalidation stays consistent. */
 export const queryKeys = {
   categories: ['categories'] as const,
   items: ['items'] as const,
+  discounts: ['discounts'] as const,
   members: ['members'] as const,
   access: (email: string) => ['access', email] as const,
   passHolders: (passItemId: string) => ['passHolders', passItemId] as const,
@@ -103,6 +109,32 @@ export function useCategoryMutations() {
     remove: useMutation({ mutationFn: deleteCategory, onSuccess: invalidate }),
     reorder: useMutation({
       mutationFn: (orderedIds: string[]) => reorderCategories(orderedIds),
+      onSuccess: invalidate,
+    }),
+  };
+}
+
+// ---------------------------------------------------------------- Discounts
+
+export function useDiscounts() {
+  return useQuery({ queryKey: queryKeys.discounts, queryFn: listDiscounts });
+}
+
+export function useDiscountMutations() {
+  const qc = useQueryClient();
+  const invalidate = () =>
+    qc.invalidateQueries({ queryKey: queryKeys.discounts });
+
+  return {
+    create: useMutation({ mutationFn: createDiscount, onSuccess: invalidate }),
+    update: useMutation({
+      mutationFn: ({ id, input }: { id: string; input: Partial<DiscountInput> }) =>
+        updateDiscount(id, input),
+      onSuccess: invalidate,
+    }),
+    remove: useMutation({ mutationFn: deleteDiscount, onSuccess: invalidate }),
+    reorder: useMutation({
+      mutationFn: (orderedIds: string[]) => reorderDiscounts(orderedIds),
       onSuccess: invalidate,
     }),
   };

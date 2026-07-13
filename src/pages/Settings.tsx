@@ -2,14 +2,16 @@ import { useState } from 'react';
 import { PageHeader } from '../components/PageHeader';
 import { CategoriesSection } from './settings/CategoriesSection';
 import { ItemsSection } from './settings/ItemsSection';
+import { DiscountsSection } from './settings/DiscountsSection';
 import { CheckoutsSection } from './settings/CheckoutsSection';
 import { MembersSection } from './settings/MembersSection';
 
-type Tab = 'categories' | 'items' | 'checkouts' | 'members';
+type Tab = 'categories' | 'items' | 'discounts' | 'checkouts' | 'members';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'categories', label: 'Categories' },
   { id: 'items', label: 'Items' },
+  { id: 'discounts', label: 'Discounts' },
   { id: 'checkouts', label: 'Checkouts' },
   { id: 'members', label: 'Members' },
 ];
@@ -47,6 +49,7 @@ export function Settings() {
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         {active === 'categories' && <CategoriesSection />}
         {active === 'items' && <ItemsSection />}
+        {active === 'discounts' && <DiscountsSection />}
         {active === 'checkouts' && <CheckoutsSection />}
         {active === 'members' && <MembersSection />}
       </div>

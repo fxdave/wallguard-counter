@@ -4,12 +4,52 @@ import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { NumberField, SelectField } from '../../components/ui/Field';
-import { useCheckoutsInfinite, useCheckoutMutations, useItems } from '../../lib/queries';
+import {
+  useCheckoutsInfinite,
+  useCheckoutMutations,
+  useItems,
+  useDiscounts,
+} from '../../lib/queries';
 import { formatPrice, toDateInputValue, fromDateInputValue } from '../../lib/format';
-import type { Checkout, CheckoutLine } from '../../lib/types';
+import { computeDiscountLines } from '../../lib/discounts';
+import type { Checkout, CheckoutLine, Discount } from '../../lib/types';
+import { DiscountChip } from '../quickadd/DiscountChip';
 
 type DeleteState = { open: false } | { open: true; checkout: Checkout };
-type EditState = { open: false } | { open: true; checkout: Checkout; date: string; lines: CheckoutLine[] };
+type EditState =
+  | { open: false }
+  | {
+      open: true;
+      checkout: Checkout;
+      date: string;
+      /** Only non-discount lines; discounts are recomputed from these on save. */
+      itemLines: CheckoutLine[];
+      /** Discounts that can be toggled for this checkout (snapshot + live). */
+      availableDiscounts: Discount[];
+      /** Ids of the currently-applied discounts. */
+      activeDiscountIds: Set<string>;
+    };
+
+/** A checkout line is a discount when it carries a `percent`. */
+const isDiscountLine = (l: CheckoutLine) => l.percent !== undefined;
+
+/**
+ * Recompute a checkout's lines + total from the edited item lines and the set of
+ * active discounts. Item lines with quantity 0 are dropped; discounts stack
+ * multiplicatively on the resulting subtotal (same rule as Quick Add).
+ */
+function computeEdit(
+  itemLines: CheckoutLine[],
+  availableDiscounts: Discount[],
+  activeIds: Set<string>,
+): { lines: CheckoutLine[]; total: number } {
+  const kept = itemLines.filter((l) => l.quantity > 0);
+  const subtotal = kept.reduce((sum, l) => sum + l.price * l.quantity, 0);
+  const active = availableDiscounts.filter((d) => activeIds.has(d.id));
+  const discountLines = computeDiscountLines(subtotal, active);
+  const total = subtotal + discountLines.reduce((sum, l) => sum + l.price, 0);
+  return { lines: [...kept, ...discountLines], total };
+}
 
 function formatCheckoutDate(checkout: Checkout): string {
   const d = checkout.createdAt.toDate();
@@ -19,10 +59,6 @@ function formatCheckoutDate(checkout: Checkout): string {
     day: 'numeric',
     weekday: 'short',
   });
-}
-
-function recomputeTotal(lines: CheckoutLine[]): number {
-  return lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
 }
 
 interface CheckoutRowProps {
@@ -101,8 +137,13 @@ function CheckoutRow({ checkout, onEdit, onDelete }: CheckoutRowProps) {
                     {line.price > 0 && (
                       <span className="text-white/40">@ {formatPrice(line.price)}</span>
                     )}
-                    {line.price > 0 && (
-                      <span className="text-lime-300/60 w-16 text-right tabular-nums">
+                    {line.price !== 0 && (
+                      <span
+                        className={[
+                          'w-16 text-right tabular-nums',
+                          line.price < 0 ? 'text-amber-300/70' : 'text-lime-300/60',
+                        ].join(' ')}
+                      >
                         {formatPrice(line.price * line.quantity)}
                       </span>
                     )}
@@ -127,6 +168,7 @@ export function CheckoutsSection() {
   } = useCheckoutsInfinite();
   const checkouts = data?.pages.flatMap((p) => p.checkouts) ?? [];
   const { data: items = [] } = useItems();
+  const { data: discounts = [] } = useDiscounts();
   const { update, remove } = useCheckoutMutations();
 
   const [deleteState, setDeleteState] = useState<DeleteState>({ open: false });
@@ -135,11 +177,28 @@ export function CheckoutsSection() {
 
   function openEdit(checkout: Checkout) {
     setAddItemId('');
+    const itemLines = checkout.lines.filter((l) => !isDiscountLine(l)).map((l) => ({ ...l }));
+    const discountLines = checkout.lines.filter(isDiscountLine);
+
+    // Toggleable discounts: those already on the checkout (using their SNAPSHOT
+    // name/percent, preserving history) plus any live discounts not yet applied.
+    const liveById = new Map(discounts.map((d) => [d.id, d]));
+    const snapshot: Discount[] = discountLines.map((l, idx) => ({
+      id: l.itemId,
+      name: l.name,
+      percent: l.percent ?? 0,
+      order: liveById.get(l.itemId)?.order ?? 1_000_000 + idx,
+    }));
+    const snapshotIds = new Set(snapshot.map((d) => d.id));
+    const extraLive = discounts.filter((d) => !snapshotIds.has(d.id));
+
     setEditState({
       open: true,
       checkout,
       date: toDateInputValue(checkout.createdAt.toDate()),
-      lines: checkout.lines.map((l) => ({ ...l })),
+      itemLines,
+      availableDiscounts: [...snapshot, ...extraLive],
+      activeDiscountIds: new Set(snapshotIds),
     });
   }
 
@@ -158,11 +217,11 @@ export function CheckoutsSection() {
     setEditState((s) => {
       if (!s.open) return s;
       if (!item.isPass) {
-        const existing = s.lines.find((l) => l.itemId === item.id && !l.holderName);
+        const existing = s.itemLines.find((l) => l.itemId === item.id && !l.holderName);
         if (existing) {
           return {
             ...s,
-            lines: s.lines.map((l) =>
+            itemLines: s.itemLines.map((l) =>
               l === existing ? { ...l, quantity: l.quantity + 1 } : l,
             ),
           };
@@ -170,8 +229,8 @@ export function CheckoutsSection() {
       }
       return {
         ...s,
-        lines: [
-          ...s.lines,
+        itemLines: [
+          ...s.itemLines,
           { itemId: item.id, name: item.name, price: item.price, quantity: 1 },
         ],
       };
@@ -179,10 +238,23 @@ export function CheckoutsSection() {
     setAddItemId('');
   }
 
+  function toggleDiscount(id: string) {
+    setEditState((s) => {
+      if (!s.open) return s;
+      const next = new Set(s.activeDiscountIds);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return { ...s, activeDiscountIds: next };
+    });
+  }
+
   async function handleSave() {
     if (!editState.open) return;
-    const lines = editState.lines.filter((l) => l.quantity > 0);
-    const total = recomputeTotal(lines);
+    const { lines, total } = computeEdit(
+      editState.itemLines,
+      editState.availableDiscounts,
+      editState.activeDiscountIds,
+    );
     const createdAt = fromDateInputValue(editState.date);
     await update.mutateAsync({
       id: editState.checkout.id,
@@ -203,7 +275,7 @@ export function CheckoutsSection() {
       if (!s.open) return s;
       return {
         ...s,
-        lines: s.lines.map((l, i) =>
+        itemLines: s.itemLines.map((l, i) =>
           i === index ? { ...l, quantity: Math.max(0, qty) } : l,
         ),
       };
@@ -293,7 +365,7 @@ export function CheckoutsSection() {
                 Lines (set quantity to 0 to remove)
               </p>
               <ul className="space-y-2">
-                {editState.lines.map((line, i) => (
+                {editState.itemLines.map((line, i) => (
                   <li key={i} className="flex items-center gap-3">
                     <span className="flex-1 truncate text-sm text-white/70">
                       {line.name}
@@ -318,7 +390,7 @@ export function CheckoutsSection() {
                   </li>
                 ))}
               </ul>
-              {editState.lines.length === 0 && (
+              {editState.itemLines.length === 0 && (
                 <p className="text-xs text-white/30">No lines yet — add an item below.</p>
               )}
 
@@ -355,7 +427,25 @@ export function CheckoutsSection() {
                 </p>
               )}
 
-              {editState.lines.length > 0 && editState.lines.every((l) => l.quantity === 0) && (
+              {editState.availableDiscounts.length > 0 && (
+                <div className="mt-4 border-t border-white/5 pt-3">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wider text-white/40">
+                    Discounts
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {editState.availableDiscounts.map((discount) => (
+                      <DiscountChip
+                        key={discount.id}
+                        discount={discount}
+                        active={editState.activeDiscountIds.has(discount.id)}
+                        onToggle={() => toggleDiscount(discount.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {editState.itemLines.length > 0 && editState.itemLines.every((l) => l.quantity === 0) && (
                 <p className="mt-2 text-xs text-amber-300/70">
                   All quantities are 0 — saving will create an empty checkout.
                 </p>
@@ -363,7 +453,13 @@ export function CheckoutsSection() {
               <p className="mt-3 text-right text-sm text-white/50">
                 New total:{' '}
                 <span className="font-semibold text-lime-300">
-                  {formatPrice(recomputeTotal(editState.lines.filter((l) => l.quantity > 0)))}
+                  {formatPrice(
+                    computeEdit(
+                      editState.itemLines,
+                      editState.availableDiscounts,
+                      editState.activeDiscountIds,
+                    ).total,
+                  )}
                 </span>
               </p>
             </div>

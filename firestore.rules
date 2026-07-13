@@ -56,6 +56,9 @@ service cloud.firestore {
     match /passHolders/{id} {
       allow read, write: if isMember();
     }
+    match /discounts/{id} {
+      allow read, write: if isMember();
+    }
 
     // Deny everything else by default.
     match /{document=**} {

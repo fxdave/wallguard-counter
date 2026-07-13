@@ -26,6 +26,8 @@ import type {
   CategoryInput,
   Checkout,
   CheckoutInput,
+  Discount,
+  DiscountInput,
   Item,
   ItemInput,
   Member,
@@ -44,6 +46,7 @@ const itemsCol = collection(db, 'items');
 const checkoutsCol = collection(db, 'checkouts');
 const membersCol = collection(db, 'members');
 const passHoldersCol = collection(db, 'passHolders');
+const discountsCol = collection(db, 'discounts');
 
 // ------------------------------------------------------------------- Members
 
@@ -114,6 +117,38 @@ export async function reorderCategories(orderedIds: string[]): Promise<void> {
   const batch = writeBatch(db);
   orderedIds.forEach((id, index) => {
     batch.update(doc(categoriesCol, id), { order: (index + 1) * 1000 });
+  });
+  await batch.commit();
+}
+
+// ----------------------------------------------------------------- Discounts
+
+export async function listDiscounts(): Promise<Discount[]> {
+  const snap = await getDocs(query(discountsCol, orderBy('order')));
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as DiscountInput) }));
+}
+
+export async function createDiscount(input: DiscountInput): Promise<string> {
+  const ref = await addDoc(discountsCol, input);
+  return ref.id;
+}
+
+export async function updateDiscount(
+  id: string,
+  input: Partial<DiscountInput>,
+): Promise<void> {
+  await updateDoc(doc(discountsCol, id), input);
+}
+
+export async function deleteDiscount(id: string): Promise<void> {
+  await deleteDoc(doc(discountsCol, id));
+}
+
+/** Reassigns order values (1000, 2000, 3000…) for all discounts in the given sequence. */
+export async function reorderDiscounts(orderedIds: string[]): Promise<void> {
+  const batch = writeBatch(db);
+  orderedIds.forEach((id, index) => {
+    batch.update(doc(discountsCol, id), { order: (index + 1) * 1000 });
   });
   await batch.commit();
 }
