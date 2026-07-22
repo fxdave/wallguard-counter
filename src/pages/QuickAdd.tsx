@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Button } from '../components/ui/Button';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { useLocalStorageState } from '../lib/useLocalStorageState';
 import {
   useCategories,
   useItems,
@@ -22,12 +24,28 @@ export function QuickAdd() {
   const { create } = useCheckoutMutations();
   const { create: createHolder, incrementUsage } = usePassHolderMutations();
 
+  // Session state persists to localStorage so an accidental reload doesn't lose
+  // an in-progress count. Cleared on Save and by the Clear button.
   // Normal items: simple counts. Pass items: a list of per-person entries.
-  const [counts, setCounts] = useState<Record<string, number>>({});
-  const [passEntries, setPassEntries] = useState<Record<string, PassEntry[]>>({});
-  const [passModalItem, setPassModalItem] = useState<Item | null>(null);
+  const [counts, setCounts] = useLocalStorageState<Record<string, number>>(
+    'wallguard:quickadd-counts',
+    {},
+  );
+  const [passEntries, setPassEntries] = useLocalStorageState<Record<string, PassEntry[]>>(
+    'wallguard:quickadd-pass-entries',
+    {},
+  );
   // Ids of the discounts currently toggled on.
-  const [activeDiscounts, setActiveDiscounts] = useState<Set<string>>(new Set());
+  const [activeDiscounts, setActiveDiscounts] = useLocalStorageState<Set<string>>(
+    'wallguard:quickadd-discounts',
+    new Set(),
+    {
+      serialize: (s) => JSON.stringify([...s]),
+      deserialize: (raw) => new Set(JSON.parse(raw) as string[]),
+    },
+  );
+  const [passModalItem, setPassModalItem] = useState<Item | null>(null);
+  const [confirmingReset, setConfirmingReset] = useState(false);
 
   const isLoading = catsLoading || itemsLoading;
 
@@ -161,12 +179,18 @@ export function QuickAdd() {
     lines.push(...discountLines);
 
     await create.mutateAsync({ total: runningTotal, lines });
+    clearSession();
+  }
+
+  /** Wipe the whole in-progress session (counts, pass entries, discounts). */
+  function clearSession() {
     setCounts({});
     setPassEntries({});
     setActiveDiscounts(new Set());
   }
 
   const saving = create.isPending || createHolder.isPending;
+  const hasSession = totalQty > 0 || activeDiscounts.size > 0;
 
   return (
     <div className="pb-28">
@@ -269,23 +293,46 @@ export function QuickAdd() {
             </motion.span>
           </div>
 
-          <Button
-            variant="primary"
-            disabled={totalQty === 0 || saving}
-            onClick={() => void handleSave()}
-            className="min-w-[100px] py-3 text-base"
-          >
-            {saving ? (
-              <span className="flex items-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black" />
-                Saving…
-              </span>
-            ) : (
-              'Save'
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="subtle"
+              disabled={!hasSession || saving}
+              onClick={() => setConfirmingReset(true)}
+              className="py-3"
+            >
+              Clear
+            </Button>
+
+            <Button
+              variant="primary"
+              disabled={totalQty === 0 || saving}
+              onClick={() => void handleSave()}
+              className="min-w-[100px] py-3 text-base"
+            >
+              {saving ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black" />
+                  Saving…
+                </span>
+              ) : (
+                'Save'
+              )}
+            </Button>
+          </div>
         </div>
       </motion.div>
+
+      <ConfirmDialog
+        open={confirmingReset}
+        title="Clear this session?"
+        message="This removes every count, pass entry, and discount you've added since your last save. It can't be undone."
+        confirmLabel="Clear"
+        onConfirm={() => {
+          clearSession();
+          setConfirmingReset(false);
+        }}
+        onCancel={() => setConfirmingReset(false)}
+      />
 
       {passModalItem && (
         <PassModal

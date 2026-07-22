@@ -147,7 +147,7 @@ export function PassModal({ item, onClose, onAdd }: PassModalProps) {
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-medium">{h.name}</span>
                         <span className="block text-xs text-white/40">
-                          {h.birthday} · {h.usageCount} uses
+                          🎂 {h.birthday} · started {h.startedAt} · {h.usageCount} uses
                         </span>
                       </span>
                       <span className="shrink-0 text-xs font-semibold text-lime-300">
