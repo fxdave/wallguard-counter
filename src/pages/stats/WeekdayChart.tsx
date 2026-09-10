@@ -33,17 +33,17 @@ export function WeekdayChart({ weekdays }: { weekdays: WeekdayStat[] }) {
               />
             </div>
 
-            <div className="w-40 shrink-0 text-right leading-tight">
+            <div className="w-52 shrink-0 whitespace-nowrap text-right leading-tight">
               {quiet ? (
                 <span className="text-[11px] text-white/20">No activity</span>
               ) : (
                 <>
                   <span className="text-[12px] font-bold tabular-nums text-white/80">
-                    {formatPrice(day.revenuePerActiveDay)}
+                    {formatPrice(Math.round(day.revenuePerActiveDay))}
                   </span>
                   <span className="text-[10px] text-white/30"> / day</span>
                   <div className="text-[10px] tabular-nums text-white/35">
-                    {formatPrice(day.revenue)} over {day.activeDays}{' '}
+                    {formatPrice(Math.round(day.revenue))} over {day.activeDays}{' '}
                     {day.activeDays === 1 ? 'day' : 'days'} · {day.quantity} items
                   </div>
                 </>

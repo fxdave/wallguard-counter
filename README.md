@@ -1,8 +1,28 @@
 # Wallguard Counter
 
-A small, auth-gated **counter** web app for a household-style group. Count items
+A small, auth-gated sold item **counter** web app, originally created for a
+climbing gym handling entry tickets, passes, and rental items. Count items
 (name, icon, price, category), save batches ("checkouts"), review a monthly
-overview, and export transactions to CSV. Fully client-side — no backend.
+overview, read the numbers on a stats page, and export transactions to CSV.
+Fully client-side — no backend.
+
+## Screenshots
+
+Counting a round on **Quick Add** — tap to count, discounts toggle at the
+bottom, the bar tracks what the batch is worth:
+
+![Quick Add](./docs/screenshots/quick-add.png)
+
+The **Overview** grid — one column per day of the month, items grouped by
+category, and a day-by-day money total along the bottom:
+
+![Overview](./docs/screenshots/overview.png)
+
+**Stats** over a month, a year, or a custom range — income and its change,
+income over time, which weekdays carry the place, and per-category and per-item
+breakdowns:
+
+![Stats](./docs/screenshots/stats.png)
 
 ## Stack
 
@@ -32,6 +52,14 @@ make import-prod-db
 Requires `FIREBASE_SERVICE_ACCOUNT` (production service account JSON) in your
 environment.
 
+Or fill the emulator with a year of generated activity — the data behind the
+screenshots above, including the sign-in user `demo@wallguard.local` /
+`password123`:
+
+```bash
+node scripts/seed-demo-data.mjs
+```
+
 ### Without podman
 
 ```bash
@@ -55,6 +83,10 @@ npm run dev               # terminal 2
 | `npm run test:emulators` | Run tests against the Firebase emulators |
 
 Run a single test file: `npm run test -- src/lib/csv.test.ts`
+
+Other scripts: `node scripts/seed-demo-data.mjs` (demo data for the emulator),
+`node scripts/migrate.mjs` (migrations), `node scripts/emulator-roundtrip.mjs`
+(smoke test against the emulators).
 
 ## Access control
 
