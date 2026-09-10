@@ -5,6 +5,7 @@ import { ThemeToggle } from './ThemeToggle';
 const NAV = [
   { to: '/', label: 'Quick Add', end: true },
   { to: '/overview', label: 'Overview', end: false },
+  { to: '/stats', label: 'Stats', end: false },
   { to: '/export', label: 'Export', end: false },
   { to: '/settings', label: 'Settings', end: false },
 ];
