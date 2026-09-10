@@ -1,5 +1,5 @@
 import type { Category, Item } from '../../lib/types';
-import { formatPrice } from '../../lib/format';
+import { formatPriceCompact } from '../../lib/format';
 
 interface Props {
   categories: Category[];
@@ -137,7 +137,7 @@ export function MonthTable({
             >
               <span className="font-display text-[11px] font-bold uppercase tracking-widest text-white/50">
                 <span className="mr-1.5 opacity-70">💰</span>
-                Total
+                Total <span className="text-white/30">(Ft)</span>
               </span>
             </th>
 
@@ -167,7 +167,7 @@ export function MonthTable({
                         isToday ? 'text-lime-300' : 'text-white/70',
                       ].join(' ')}
                     >
-                      {formatPrice(money)}
+                      {formatPriceCompact(money)}
                     </span>
                   )}
                 </td>
@@ -177,7 +177,7 @@ export function MonthTable({
             {/* Month grand total */}
             <td className="py-2 text-center">
               <span className="text-[10px] font-bold text-lime-300">
-                {formatPrice(monthMoney)}
+                {formatPriceCompact(monthMoney)}
               </span>
             </td>
           </tr>

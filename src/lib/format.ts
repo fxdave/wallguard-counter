@@ -5,9 +5,25 @@ const priceFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 2,
 });
 
-/** Format a price as a plain localized number (currency-neutral). */
+/**
+ * The single place prices become text. Amounts are forints, written as a
+ * grouped number and a non-breaking space before the unit so the value never
+ * wraps away from `Ft`.
+ */
 export function formatPrice(value: number): string {
-  return priceFormatter.format(value);
+  return `${priceFormatter.format(value)}\u00A0Ft`;
+}
+
+/**
+ * Short price for tight grids: thousands collapse to `k`, always rounded DOWN
+ * so a cell never claims more than was taken (130 999 reads as `130k`). The
+ * unit is dropped — label the column with it.
+ */
+export function formatPriceCompact(value: number): string {
+  const sign = value < 0 ? '-' : '';
+  const abs = Math.abs(value);
+  if (abs < 1000) return `${sign}${priceFormatter.format(Math.floor(abs))}`;
+  return `${sign}${Math.floor(abs / 1000)}k`;
 }
 
 /** `YYYY-MM-DD` key in LOCAL time — used to bucket checkouts by calendar day. */
