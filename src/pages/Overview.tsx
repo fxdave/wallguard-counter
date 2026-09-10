@@ -72,6 +72,16 @@ export function Overview() {
     return map;
   }, [checkouts]);
 
+  /** dayKey -> total money for that day (discount lines already net it down) */
+  const dayMoney = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const checkout of checkouts) {
+      const dk = dayKey(checkout.createdAt.toDate());
+      map.set(dk, (map.get(dk) ?? 0) + checkout.total);
+    }
+    return map;
+  }, [checkouts]);
+
   const isLoading = catsLoading || checkoutsLoading;
 
   function shiftMonth(delta: number) {
@@ -110,6 +120,7 @@ export function Overview() {
           items={rowItems}
           days={days}
           totals={totals}
+          dayMoney={dayMoney}
           todayKey={todayKey}
           weekdayLabel={weekdayLabel}
           isWeekend={isWeekend}

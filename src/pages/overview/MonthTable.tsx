@@ -1,4 +1,5 @@
 import type { Category, Item } from '../../lib/types';
+import { formatPrice } from '../../lib/format';
 
 interface Props {
   categories: Category[];
@@ -6,6 +7,8 @@ interface Props {
   days: Date[];
   /** itemId -> dayKey -> quantity total */
   totals: Map<string, Map<string, number>>;
+  /** dayKey -> money total for that day */
+  dayMoney: Map<string, number>;
   todayKey: string;
   weekdayLabel: (d: Date) => string;
   isWeekend: (d: Date) => boolean;
@@ -17,11 +20,14 @@ export function MonthTable({
   items,
   days,
   totals,
+  dayMoney,
   todayKey,
   weekdayLabel,
   isWeekend,
   dayKey,
 }: Props) {
+  const monthMoney = days.reduce((sum, d) => sum + (dayMoney.get(dayKey(d)) ?? 0), 0);
+
   return (
     <div className="overflow-x-auto rounded-2xl border border-white/5 bg-white/[0.02]">
       <table
@@ -121,6 +127,61 @@ export function MonthTable({
             );
           })}
         </tbody>
+
+        {/* ── Footer: money total per day ──────────────────────────────────── */}
+        <tfoot>
+          <tr className="border-t-2 border-white/10 bg-white/[0.04]">
+            <th
+              scope="row"
+              className="sticky left-0 z-10 border-r border-white/8 bg-panel px-4 py-2 text-left"
+            >
+              <span className="font-display text-[11px] font-bold uppercase tracking-widest text-white/50">
+                <span className="mr-1.5 opacity-70">💰</span>
+                Total
+              </span>
+            </th>
+
+            {days.map((d) => {
+              const dk = dayKey(d);
+              const money = dayMoney.get(dk) ?? 0;
+              const weekend = isWeekend(d);
+              const isToday = dk === todayKey;
+
+              return (
+                <td
+                  key={dk}
+                  className={[
+                    'border-r border-white/5 px-0.5 py-2 text-center leading-none',
+                    weekend ? 'bg-white/[0.012]' : '',
+                    isToday ? 'bg-lime-300/[0.03]' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  {money === 0 ? (
+                    <span className="text-[11px] text-white/10">·</span>
+                  ) : (
+                    <span
+                      className={[
+                        'text-[10px] font-bold',
+                        isToday ? 'text-lime-300' : 'text-white/70',
+                      ].join(' ')}
+                    >
+                      {formatPrice(money)}
+                    </span>
+                  )}
+                </td>
+              );
+            })}
+
+            {/* Month grand total */}
+            <td className="py-2 text-center">
+              <span className="text-[10px] font-bold text-lime-300">
+                {formatPrice(monthMoney)}
+              </span>
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );
