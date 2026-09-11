@@ -16,9 +16,12 @@ import {
   dayKey,
 } from '../lib/format';
 import { MonthTable } from './overview/MonthTable';
+import { DayDetailModal } from './overview/DayDetailModal';
 
 export function Overview() {
   const [month, setMonth] = useState<Date>(() => new Date());
+  /** Day whose breakdown modal is open, as a `YYYY-MM-DD` key. */
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   const from = useMemo(() => startOfMonth(month), [month]);
   const to = useMemo(() => startOfNextMonth(month), [month]);
@@ -82,6 +85,23 @@ export function Overview() {
     return map;
   }, [checkouts]);
 
+  /** dayKey -> that day's checkouts, for the day breakdown modal */
+  const dayCheckouts = useMemo(() => {
+    const map = new Map<string, typeof checkouts>();
+    for (const checkout of checkouts) {
+      const dk = dayKey(checkout.createdAt.toDate());
+      const list = map.get(dk);
+      if (list) list.push(checkout);
+      else map.set(dk, [checkout]);
+    }
+    return map;
+  }, [checkouts]);
+
+  const selectedDate = useMemo(() => {
+    if (!selectedDay) return null;
+    return days.find((d) => dayKey(d) === selectedDay) ?? null;
+  }, [selectedDay, days]);
+
   const isLoading = catsLoading || checkoutsLoading;
 
   function shiftMonth(delta: number) {
@@ -125,8 +145,15 @@ export function Overview() {
           weekdayLabel={weekdayLabel}
           isWeekend={isWeekend}
           dayKey={dayKey}
+          onSelectDay={setSelectedDay}
         />
       )}
+
+      <DayDetailModal
+        day={selectedDate}
+        checkouts={selectedDay ? (dayCheckouts.get(selectedDay) ?? []) : []}
+        onClose={() => setSelectedDay(null)}
+      />
     </>
   );
 }

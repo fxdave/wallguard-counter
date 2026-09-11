@@ -13,6 +13,8 @@ interface Props {
   weekdayLabel: (d: Date) => string;
   isWeekend: (d: Date) => boolean;
   dayKey: (d: Date) => string;
+  /** Opens that day's breakdown. Wired on days that took money. */
+  onSelectDay: (dayKey: string) => void;
 }
 
 export function MonthTable({
@@ -25,6 +27,7 @@ export function MonthTable({
   weekdayLabel,
   isWeekend,
   dayKey,
+  onSelectDay,
 }: Props) {
   const monthMoney = days.reduce((sum, d) => sum + (dayMoney.get(dayKey(d)) ?? 0), 0);
 
@@ -161,14 +164,19 @@ export function MonthTable({
                   {money === 0 ? (
                     <span className="text-[11px] text-white/10">·</span>
                   ) : (
-                    <span
+                    <button
+                      type="button"
+                      onClick={() => onSelectDay(dk)}
+                      aria-label={`Breakdown for ${weekdayLabel(d)} ${d.getDate()}`}
                       className={[
-                        'text-[10px] font-bold',
+                        'w-full rounded text-[10px] font-bold underline decoration-dotted decoration-white/25 underline-offset-2',
+                        'transition-colors hover:text-lime-300 hover:decoration-lime-300/60',
+                        'focus:outline-none focus-visible:ring-1 focus-visible:ring-lime-300/60',
                         isToday ? 'text-lime-300' : 'text-white/70',
                       ].join(' ')}
                     >
                       {formatPriceCompact(money)}
-                    </span>
+                    </button>
                   )}
                 </td>
               );
