@@ -34,6 +34,7 @@ import {
 const COLLECTIONS = [
   'categories',
   'items',
+  'discounts',
   'checkouts',
   'members',
   'passHolders',

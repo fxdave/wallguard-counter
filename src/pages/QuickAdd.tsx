@@ -22,7 +22,7 @@ export function QuickAdd() {
   const { data: items = [], isLoading: itemsLoading } = useItems();
   const { data: discounts = [] } = useDiscounts();
   const { create } = useCheckoutMutations();
-  const { create: createHolder, incrementUsage } = usePassHolderMutations();
+  const { create: createHolder, update: updateHolder, incrementUsage } = usePassHolderMutations();
 
   // Session state persists to localStorage so an accidental reload doesn't lose
   // an in-progress count. Cleared on Save and by the Clear button.
@@ -158,6 +158,12 @@ export function QuickAdd() {
             // Registering + adding in Quick Add counts as the holder's first use.
             usageCount: 1,
           });
+        } else if (entry.holderId && entry.renew) {
+          // Expired holder paid again: restart the pass from today.
+          await updateHolder.mutateAsync({
+            id: entry.holderId,
+            input: { startedAt: new Date().toISOString().slice(0, 10), usageCount: 1 },
+          });
         } else if (entry.holderId) {
           // Atomically increment usage count for existing holders.
           incrementUsage.mutate(entry.holderId);
@@ -189,7 +195,7 @@ export function QuickAdd() {
     setActiveDiscounts(new Set());
   }
 
-  const saving = create.isPending || createHolder.isPending;
+  const saving = create.isPending || createHolder.isPending || updateHolder.isPending;
   const hasSession = totalQty > 0 || activeDiscounts.size > 0;
 
   return (

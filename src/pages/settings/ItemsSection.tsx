@@ -24,11 +24,10 @@ import {
   SelectField,
   CheckboxField,
 } from '../../components/ui/Field';
-import { DateField } from '../../components/ui/DateField';
-import { useItems, useItemMutations, useCategories, usePassHolders, usePassHolderMutations } from '../../lib/queries';
+import { useItems, useItemMutations, useCategories } from '../../lib/queries';
 import { countPassHolders } from '../../lib/firestore';
 import { formatPrice } from '../../lib/format';
-import type { Item, PassHolder } from '../../lib/types';
+import type { Item } from '../../lib/types';
 
 interface ItemFormState {
   name: string;
@@ -56,153 +55,6 @@ type ModalMode =
   | { type: 'edit'; item: Item };
 
 type DeleteState = { open: false } | { open: true; item: Item };
-
-function PassHoldersSection({ passItemId }: { passItemId: string }) {
-  const [search, setSearch] = useState('');
-  const { data: allHolders = [], isLoading } = usePassHolders(passItemId);
-  const holders = search.trim()
-    ? allHolders.filter((h) => h.name.toLowerCase().includes(search.trim().toLowerCase())).slice(0, 50)
-    : allHolders.slice(0, 50);
-  const { create, update, remove } = usePassHolderMutations(passItemId);
-
-  const today = new Date().toISOString().slice(0, 10);
-  const [addForm, setAddForm] = useState({ name: '', birthday: '', startedAt: today, usageCount: '0' });
-  const [addError, setAddError] = useState('');
-  const [editHolder, setEditHolder] = useState<PassHolder | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', birthday: '', startedAt: '' });
-
-  async function handleAdd() {
-    if (!addForm.name.trim() || !addForm.birthday || !addForm.startedAt) {
-      setAddError('Name, birthday, and started date are required.');
-      return;
-    }
-    const usageCount = Math.max(0, Math.trunc(Number(addForm.usageCount) || 0));
-    await create.mutateAsync({
-      name: addForm.name.trim(),
-      birthday: addForm.birthday,
-      startedAt: addForm.startedAt,
-      passItemId,
-      usageCount,
-    });
-    setAddForm({ name: '', birthday: '', startedAt: today, usageCount: '0' });
-    setAddError('');
-  }
-
-  function openEditHolder(h: PassHolder) {
-    setEditHolder(h);
-    setEditForm({ name: h.name, birthday: h.birthday, startedAt: h.startedAt });
-  }
-
-  async function handleEditSave() {
-    if (!editHolder) return;
-    await update.mutateAsync({
-      id: editHolder.id,
-      input: {
-        name: editForm.name.trim(),
-        birthday: editForm.birthday,
-        startedAt: editForm.startedAt,
-      },
-    });
-    setEditHolder(null);
-  }
-
-  async function handleRemove(id: string) {
-    await remove.mutateAsync(id);
-  }
-
-  return (
-    <div className="border-t border-white/10 pt-4 mt-2">
-      <p className="mb-3 text-xs font-medium uppercase tracking-wider text-white/40">
-        Pass Holders
-      </p>
-
-      <input
-        className="mb-3 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-lime-300/60"
-        placeholder="Search by name…"
-        value={search}
-        onChange={(e) => { setSearch(e.target.value); setEditHolder(null); }}
-      />
-
-      {isLoading ? (
-        <p className="text-sm text-white/30">Loading…</p>
-      ) : holders.length === 0 ? (
-        <p className="mb-3 text-sm text-white/30">{search ? 'No results.' : 'No holders registered yet.'}</p>
-      ) : editHolder ? (
-        <div className="mb-3 space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-          <p className="text-xs font-medium text-white/50">Editing {editHolder.name}</p>
-          <input
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-lime-300/60"
-            placeholder="Name"
-            value={editForm.name}
-            onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
-          />
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <DateField label="Birthday" value={editForm.birthday} onChange={(v) => setEditForm((f) => ({ ...f, birthday: v }))} />
-            </div>
-            <div className="flex-1">
-              <DateField label="Started at" value={editForm.startedAt} onChange={(v) => setEditForm((f) => ({ ...f, startedAt: v }))} />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" className="!py-1 text-xs" onClick={() => setEditHolder(null)}>Cancel</Button>
-            <Button variant="primary" className="!py-1 text-xs" onClick={() => void handleEditSave()} disabled={update.isPending}>
-              {update.isPending ? 'Saving…' : 'Save'}
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <ul className="mb-3 space-y-1">
-          {holders.map((h) => (
-            <li key={h.id} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-sm">
-              <span className="flex-1 min-w-0">
-                <span className="block truncate font-medium">{h.name}</span>
-                <span className="block text-xs text-white/40">
-                  🎂 {h.birthday} · started {h.startedAt} · {h.usageCount} uses
-                </span>
-              </span>
-              <Button variant="subtle" className="!px-2 !py-1 text-xs shrink-0" onClick={() => openEditHolder(h)}>Edit</Button>
-              <Button variant="danger" className="!px-2 !py-1 text-xs shrink-0" onClick={() => void handleRemove(h.id)} disabled={remove.isPending}>Del</Button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {!editHolder && (
-        <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
-          <p className="text-xs text-white/40">Add holder</p>
-          <input
-            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-lime-300/60"
-            placeholder="Name"
-            value={addForm.name}
-            onChange={(e) => { setAddForm((f) => ({ ...f, name: e.target.value })); setAddError(''); }}
-          />
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <DateField label="Birthday" value={addForm.birthday} onChange={(v) => { setAddForm((f) => ({ ...f, birthday: v })); setAddError(''); }} />
-            </div>
-            <div className="flex-1">
-              <DateField label="Started at" value={addForm.startedAt} onChange={(v) => setAddForm((f) => ({ ...f, startedAt: v }))} />
-            </div>
-            <div className="w-24 shrink-0">
-              <NumberField
-                label="Uses"
-                min={0}
-                step={1}
-                value={addForm.usageCount}
-                onChange={(e) => setAddForm((f) => ({ ...f, usageCount: e.target.value }))}
-              />
-            </div>
-          </div>
-          {addError && <p className="text-xs text-red-400">{addError}</p>}
-          <Button variant="primary" className="w-full !py-1.5 text-xs" onClick={() => void handleAdd()} disabled={create.isPending}>
-            {create.isPending ? 'Adding…' : '+ Add holder'}
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function SortableItemRow({
   item,
@@ -503,9 +355,6 @@ export function ItemsSection() {
                     Receives <code className="text-white/50">holder</code> (PassHolder) and <code className="text-white/50">today</code> (Date). Return <code className="text-white/50">true</code> if invalid.
                   </p>
                 </div>
-              )}
-              {modal.type === 'edit' && modal.item.isPass && (
-                <PassHoldersSection passItemId={modal.item.id} />
               )}
             </div>
           )}
